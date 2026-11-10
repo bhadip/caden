@@ -1,0 +1,16 @@
+services:
+  caden-engine:
+    build: .
+    container_name: caden-engine
+    ports:
+      - "8000:8000"
+    volumes:
+      - caden_keys:/app/keys
+      - caden_db:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  caden_keys:
+  caden_db:

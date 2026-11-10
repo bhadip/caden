@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CADEN Governance Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="login-screen" class="flex items-center justify-center h-screen">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96 border border-gray-700">
+            <div class="flex justify-center mb-6"><img src="/favicon.svg" alt="CADEN Logo" class="w-16 h-16"></div>
+            <h2 class="text-2xl font-bold mb-6 text-center text-blue-400">CADEN Admin</h2>
+            <input type="text" id="username" placeholder="Username" class="w-full p-2 mb-4 bg-gray-700 rounded text-white border border-gray-600 login-input" value="admin">
+            <input type="password" id="password" placeholder="Password" class="w-full p-2 mb-4 bg-gray-700 rounded text-white border border-gray-600 login-input" value="admin123">
+            <button onclick="login()" id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Login</button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden container mx-auto p-6">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+            <div class="flex items-center gap-4">
+                <img src="/favicon.svg" alt="CADEN Logo" class="w-10 h-10">
+                <h1 class="text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.6</span></h1>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openConfigModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">⚙️ Config</button>
+                <button onclick="openPasswordModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">🔑 Password</button>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
+            </div>
+        </div>
+
+        <div class="flex gap-4 mb-6 border-b border-gray-700">
+            <button onclick="switchTab('licenses')" id="tab-licenses" class="tab-btn pb-2 px-4 text-blue-400 border-b-2 border-blue-400 font-bold">Licenses</button>
+            <button onclick="switchTab('logs')" id="tab-logs" class="tab-btn pb-2 px-4 text-gray-400 hover:text-white">Telemetry Logs</button>
+            <button onclick="switchTab('profiles')" id="tab-profiles" class="tab-btn pb-2 px-4 text-gray-400 hover:text-white">Device Profiles</button>
+        </div>
+
+        <!-- LICENSES TAB -->
+        <div id="view-licenses" class="tab-content">
+            <div class="bg-gray-800 p-6 rounded-lg mb-6 border border-gray-700">
+                <h2 class="text-2xl font-bold mb-4">License Management</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                    <input type="text" id="filter-device-id" placeholder="🔍 Device ID..." class="bg-gray-700 text-white p-2 rounded border border-gray-600" oninput="applyLicenseFilters()">
+                    <div class="flex gap-2">
+                        <select id="filter-owner-select" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLicenseFilters()"><option value="">All Owners</option></select>
+                        <input type="text" id="filter-owner-text" placeholder="Custom..." class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" oninput="applyLicenseFilters()">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="filter-status-select" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLicenseFilters()">
+                            <option value="">All Status</option><option value="ACTIVE">ACTIVE</option><option value="REVOKED">REVOKED</option><option value="PENDING_REVIEW">PENDING</option>
+                        </select>
+                        <input type="text" id="filter-status-text" placeholder="Custom..." class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" oninput="applyLicenseFilters()">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="date" id="filter-date-from" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLicenseFilters()">
+                        <input type="date" id="filter-date-to" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLicenseFilters()">
+                    </div>
+                </div>
+                <table class="w-full text-left">
+                    <thead class="border-b border-gray-700 text-gray-400"><tr><th class="p-3">Device ID</th><th class="p-3">Owner / Contact</th><th class="p-3">Status</th><th class="p-3">Expires</th><th class="p-3">Action</th></tr></thead>
+                    <tbody id="licenses-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- LOGS TAB -->
+        <div id="view-logs" class="tab-content hidden">
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Telemetry Logs</h2>
+                    <button onclick="showTrashBin()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">🗑️ Trash Bin</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <input type="text" id="filter-log-device" placeholder="🔍 Device ID..." class="bg-gray-700 text-white p-2 rounded border border-gray-600" oninput="applyLogFilters()">
+                    <div class="flex gap-2">
+                        <select id="filter-log-type-select" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLogFilters()"><option value="">All Types</option></select>
+                        <input type="text" id="filter-log-type-text" placeholder="Custom..." class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" oninput="applyLogFilters()">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="filter-log-keyword-select" class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" onchange="applyLogFilters()">
+                            <option value="">All Keywords</option><option value="APP_START">APP_START</option><option value="ACTIVATION">ACTIVATION</option><option value="RUNTIME_ERROR">RUNTIME_ERROR</option><option value="OPERATION">OPERATION</option><option value="Clock skew">Clock skew</option><option value="Hardware">Hardware</option>
+                        </select>
+                        <input type="text" id="filter-log-keyword-text" placeholder="Custom..." class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" oninput="applyLogFilters()">
+                    </div>
+                    <select id="log-level-filter" class="bg-gray-700 text-white p-2 rounded border border-gray-600" onchange="applyLogFilters()">
+                        <option value="">⚡ All Levels</option><option value="1">Level 1 (Critical)</option><option value="2">Level 2 (Operations)</option>
+                    </select>
+                </div>
+                <div id="logs-count" class="text-sm text-gray-400 mb-4">Loading...</div>
+                <div id="logs-container" class="max-h-[600px] overflow-y-auto font-mono text-sm space-y-2 pr-2"></div>
+            </div>
+        </div>
+
+        <!-- DEVICE PROFILES TAB - WITH INLINE FILTERS -->
+        <div id="view-profiles" class="tab-content hidden">
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+                <h2 class="text-2xl font-bold mb-4">Device Profiles (Hardware Specs)</h2>
+                <p class="text-gray-400 text-sm mb-4">Latest system information collected from each registered device. Type in any column to filter.</p>
+                <div id="profiles-count" class="text-sm text-gray-400 mb-4">Loading...</div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="border-b border-gray-700 text-gray-400">
+                            <tr>
+                                <th class="p-3">Device ID<br><input type="text" id="fp-device" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">Owner<br><input type="text" id="fp-owner" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">Status<br><input type="text" id="fp-status" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">OS / Platform<br><input type="text" id="fp-os" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">CPU<br><input type="text" id="fp-cpu" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">RAM<br><input type="text" id="fp-ram" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">Screen<br><input type="text" id="fp-screen" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">GPU<br><input type="text" id="fp-gpu" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">Timezone<br><input type="text" id="fp-tz" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="profiles-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="assign-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">Assign Owner</h3>
+            <input type="hidden" id="assign-license-id">
+            <input type="text" id="assign-name" placeholder="Full Name" class="w-full p-2 mb-3 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <input type="email" id="assign-email" placeholder="Email" class="w-full p-2 mb-3 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <input type="text" id="assign-wa" placeholder="WhatsApp" class="w-full p-2 mb-4 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <div class="flex gap-2"><button onclick="saveAssignment()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">Save</button><button onclick="closeModal('assign-modal')" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Cancel</button></div>
+        </div>
+    </div>
+    <div id="extend-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">Extend License</h3>
+            <input type="hidden" id="extend-license-id">
+            <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">Add Days:</label><input type="number" id="extend-days" placeholder="30" class="w-full p-2 bg-gray-700 rounded text-white border border-gray-600 modal-input"></div>
+            <div class="flex gap-2"><button onclick="saveExtension()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Extend</button><button onclick="closeModal('extend-modal')" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Cancel</button></div>
+        </div>
+    </div>
+    <div id="reactivate-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">Re-activate License</h3>
+            <input type="hidden" id="reactivate-license-id">
+            <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">New Expiry (days from now):</label><input type="number" id="reactivate-days" placeholder="30" class="w-full p-2 bg-gray-700 rounded text-white border border-gray-600 modal-input"></div>
+            <div class="flex gap-2"><button onclick="saveReactivation()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">Re-activate</button><button onclick="closeModal('reactivate-modal')" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Cancel</button></div>
+        </div>
+    </div>
+    <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">⚙️ Configuration</h3>
+            <div id="config-apps-list" class="space-y-4"></div>
+            <button onclick="closeModal('config-modal')" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Close</button>
+        </div>
+    </div>
+    <div id="password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
+            <h3 class="text-xl font-bold mb-4 text-blue-400">🔑 Change Password</h3>
+            <input type="password" id="old-password" placeholder="Current Password" class="w-full p-2 mb-3 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <input type="password" id="new-password" placeholder="New Password" class="w-full p-2 mb-3 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <input type="password" id="confirm-password" placeholder="Confirm New Password" class="w-full p-2 mb-4 bg-gray-700 rounded text-white border border-gray-600 modal-input">
+            <div class="flex gap-2"><button onclick="savePassword()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded">Save</button><button onclick="closeModal('password-modal')" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Cancel</button></div>
+        </div>
+    </div>
+    <div id="trash-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-[800px] max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-blue-400">🗑️ Trash Bin</h3><button onclick="emptyTrash()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Empty Trash</button></div>
+            <div id="trash-container" class="space-y-2"></div>
+            <button onclick="closeModal('trash-modal')" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let allLogs = [];
+        let allLicenses = [];
+        let onlineDevices = []; // NEW: Track online devices
+
+        function checkSession() {
+            if (sessionStorage.getItem('caden_admin') === 'true') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                loadData();
+            }
+        }
+        window.onload = checkSession;
+
+        async function login() {
+            const res = await fetch(`${API_BASE}/admin/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value}) });
+            if(res.ok) { sessionStorage.setItem('caden_admin', 'true'); checkSession(); } else alert('Invalid credentials');
+        }
+        function logout() { sessionStorage.removeItem('caden_admin'); location.reload(); }
+
+        document.querySelectorAll('.login-input').forEach(input => {
+            input.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('login-btn').click(); } });
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('text-blue-400', 'border-b-2', 'border-blue-400', 'font-bold'); el.classList.add('text-gray-400'); });
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const btn = document.getElementById(`tab-${tabName}`);
+            btn.classList.add('text-blue-400', 'border-b-2', 'border-blue-400', 'font-bold');
+            btn.classList.remove('text-gray-400');
+            if (tabName === 'profiles') applyProfileFilters();
+        }
+
+        async function loadData() {
+            try {
+                const [licRes, logRes, statusRes] = await Promise.all([ 
+                    fetch(`${API_BASE}/admin/licenses`), 
+                    fetch(`${API_BASE}/admin/logs`),
+                    fetch(`${API_BASE}/admin/devices/online-status`) // NEW
+                ]);
+                allLicenses = await licRes.json();
+                allLogs = await logRes.json();
+                onlineDevices = (await statusRes.json()).online_devices || []; // NEW
+                populateDropdowns();
+                applyLicenseFilters();
+                applyLogFilters();
+            } catch (err) { console.error('Error loading data:', err); }
+        }
+
+        function populateDropdowns() {
+            const owners = [...new Set(allLicenses.map(l => l.owner_name).filter(n => n))];
+            const ownerSelect = document.getElementById('filter-owner-select');
+            ownerSelect.innerHTML = '<option value="">All Owners</option>' + owners.map(o => `<option value="${o}">${o}</option>`).join('');
+
+            const types = [...new Set(allLogs.map(l => l.log_type))];
+            const typeSelect = document.getElementById('filter-log-type-select');
+            typeSelect.innerHTML = '<option value="">All Types</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+
+        function applyLicenseFilters() {
+            const device = document.getElementById('filter-device-id').value.toLowerCase();
+            const ownerSel = document.getElementById('filter-owner-select').value.toLowerCase();
+            const ownerTxt = document.getElementById('filter-owner-text').value.toLowerCase();
+            const statusSel = document.getElementById('filter-status-select').value.toLowerCase();
+            const statusTxt = document.getElementById('filter-status-text').value.toLowerCase();
+            const dateFrom = document.getElementById('filter-date-from').value;
+            const dateTo = document.getElementById('filter-date-to').value;
+
+            const filtered = allLicenses.filter(l => {
+                const matchDev = l.device_id.toLowerCase().includes(device);
+                const owner = (l.owner_name || '').toLowerCase();
+                const matchOwner = (ownerSel === '' || owner === ownerSel) && (ownerTxt === '' || owner.includes(ownerTxt));
+                const status = l.status.toLowerCase();
+                const matchStatus = (statusSel === '' || status === statusSel) && (statusTxt === '' || status.includes(statusTxt));
+                const expDate = l.expires_at ? l.expires_at.split('T')[0] : '';
+                const matchDate = (!dateFrom || expDate >= dateFrom) && (!dateTo || expDate <= dateTo);
+                return matchDev && matchOwner && matchStatus && matchDate;
+            });
+
+            document.getElementById('licenses-table').innerHTML = filtered.map(l => {
+                let statusColor = l.status === 'ACTIVE' ? 'text-green-400' : (l.status === 'REVOKED' ? 'text-red-400' : 'text-yellow-400');
+                let actions = '';
+                if (l.status === 'PENDING_REVIEW') actions = `<button onclick="approveLicense(${l.id})" class="bg-green-600 px-3 py-1 rounded text-xs mr-1">Approve</button>`;
+                else if (l.status === 'ACTIVE') actions = `<button onclick="openModal('assign-modal', ${l.id}, '${l.owner_name||''}', '${l.owner_email||''}', '${l.owner_whatsapp||''}')" class="bg-blue-600 px-3 py-1 rounded text-xs mr-1">Assign</button><button onclick="openModal('extend-modal', ${l.id})" class="bg-purple-600 px-3 py-1 rounded text-xs mr-1">Extend</button><button onclick="revokeLicense(${l.id})" class="bg-red-600 px-3 py-1 rounded text-xs">Revoke</button>`;
+                else if (l.status === 'REVOKED') actions = `<button onclick="openModal('reactivate-modal', ${l.id})" class="bg-green-600 px-3 py-1 rounded text-xs">Re-activate</button>`;
+                
+                // Clean display (no emojis)
+                const nameDisplay = l.owner_name || 'Unassigned';
+                const emailDisplay = l.owner_email || '';
+                const waDisplay = l.owner_whatsapp || '';
+                
+                return `<tr class="border-b border-gray-700 hover:bg-gray-750"><td class="p-3 text-xs font-mono text-blue-300">
+    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
+    ${l.device_id}
+</td><td class="p-3 text-xs text-gray-300">${nameDisplay}<br><span class="text-gray-500">${emailDisplay} ${waDisplay}</span></td><td class="p-3 ${statusColor} font-bold text-xs">${l.status}</td><td class="p-3 text-xs text-gray-400">${l.expires_at ? new Date(l.expires_at).toLocaleString() : 'N/A'}</td><td class="p-3">${actions}</td></tr>`;
+            }).join('');
+        }
+
+        function applyLogFilters() {
+            const device = document.getElementById('filter-log-device').value.toLowerCase();
+            const typeSel = document.getElementById('filter-log-type-select').value.toLowerCase();
+            const typeTxt = document.getElementById('filter-log-type-text').value.toLowerCase();
+            const kwSel = document.getElementById('filter-log-keyword-select').value.toLowerCase();
+            const kwTxt = document.getElementById('filter-log-keyword-text').value.toLowerCase();
+            const level = document.getElementById('log-level-filter').value;
+
+            const filtered = allLogs.filter(l => {
+                const matchDev = l.device_id.toLowerCase().includes(device);
+                const logType = l.log_type.toLowerCase();
+                const matchType = (typeSel === '' || logType === typeSel) && (typeTxt === '' || logType.includes(typeTxt));
+                const payload = l.payload.toLowerCase();
+                const matchKw = (kwSel === '' || payload.includes(kwSel)) && (kwTxt === '' || payload.includes(kwTxt));
+                const matchLevel = level === "" || l.log_level == level;
+                return matchDev && matchType && matchKw && matchLevel;
+            });
+
+            document.getElementById('logs-count').innerText = `${filtered.length} of ${allLogs.length} logs found`;
+            document.getElementById('logs-container').innerHTML = filtered.map(l => {
+                const levelColor = l.log_level == 1 ? 'text-red-400 bg-red-900/20' : 'text-green-400 bg-green-900/20';
+                const levelLabel = l.log_level == 1 ? 'CRITICAL' : 'OPERATION';
+                return `<div class="bg-gray-900 p-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"><div class="flex items-center gap-2 mb-1 flex-wrap"><span class="text-blue-400 text-xs">[${new Date(l.created_at).toLocaleString()}]</span><span class="${levelColor} px-2 py-0.5 rounded text-[10px] font-bold">${levelLabel}</span><span class="text-yellow-400 text-xs font-bold">${l.log_type}</span><span class="text-gray-500 text-xs font-mono">(${l.device_id})</span><button onclick="trashLog(${l.id})" class="ml-auto text-red-400 hover:text-red-300 text-xs">🗑️</button></div><div class="text-gray-300 text-xs break-all">${l.payload}</div></div>`;
+            }).join('');
+        }
+
+        function applyProfileFilters() {
+            const deviceFilter = document.getElementById('fp-device').value.toLowerCase();
+            const ownerFilter = document.getElementById('fp-owner').value.toLowerCase();
+            const statusFilter = document.getElementById('fp-status').value.toLowerCase();
+            const osFilter = document.getElementById('fp-os').value.toLowerCase();
+            const cpuFilter = document.getElementById('fp-cpu').value.toLowerCase();
+            const ramFilter = document.getElementById('fp-ram').value.toLowerCase();
+            const screenFilter = document.getElementById('fp-screen').value.toLowerCase();
+            const gpuFilter = document.getElementById('fp-gpu').value.toLowerCase();
+            const tzFilter = document.getElementById('fp-tz').value.toLowerCase();
+
+            const filtered = allLicenses.filter(l => {
+                let sys = {};
+                try { sys = typeof l.system_info === 'string' ? JSON.parse(l.system_info) : (l.system_info || {}); } catch(e) {}
+                
+                const matchDevice = l.device_id.toLowerCase().includes(deviceFilter);
+                const owner = (l.owner_name || '').toLowerCase();
+                const matchOwner = ownerFilter === '' || owner.includes(ownerFilter);
+                const status = l.status.toLowerCase();
+                const matchStatus = statusFilter === '' || status.includes(statusFilter);
+                const os = (sys.platform || '').toLowerCase();
+                const matchOS = osFilter === '' || os.includes(osFilter);
+                const cpu = (sys.cpuCores || '').toString().toLowerCase();
+                const matchCPU = cpuFilter === '' || cpu.includes(cpuFilter);
+                const ram = (sys.deviceMemory || '').toLowerCase();
+                const matchRAM = ramFilter === '' || ram.includes(ramFilter);
+                const screen = (sys.screenRes || (sys.screenWidth && sys.screenHeight ? sys.screenWidth+'x'+sys.screenHeight : '')).toLowerCase();
+                const matchScreen = screenFilter === '' || screen.includes(screenFilter);
+                const gpu = (sys.webglRenderer || '').toLowerCase();
+                const matchGPU = gpuFilter === '' || gpu.includes(gpuFilter);
+                const tz = (sys.timezone || '').toLowerCase();
+                const matchTZ = tzFilter === '' || tz.includes(tzFilter);
+                
+                return matchDevice && matchOwner && matchStatus && matchOS && matchCPU && matchRAM && matchScreen && matchGPU && matchTZ;
+            });
+
+            document.getElementById('profiles-count').innerText = `${filtered.length} of ${allLicenses.length} devices`;
+            document.getElementById('profiles-table').innerHTML = filtered.map(l => {
+                let sys = {};
+                try { sys = typeof l.system_info === 'string' ? JSON.parse(l.system_info) : (l.system_info || {}); } catch(e) {}
+                let statusColor = l.status === 'ACTIVE' ? 'text-green-400' : (l.status === 'REVOKED' ? 'text-red-400' : 'text-yellow-400');
+                const screen = sys.screenRes || (sys.screenWidth && sys.screenHeight ? sys.screenWidth+'x'+sys.screenHeight : 'N/A');
+                return `<tr class="border-b border-gray-700 hover:bg-gray-750">
+                    <td class="p-3 text-xs font-mono text-blue-300">
+    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
+    ${l.device_id}
+</td>
+                    <td class="p-3 text-xs text-gray-300">${l.owner_name || 'Unassigned'}</td>
+                    <td class="p-3 ${statusColor} font-bold text-xs">${l.status}</td>
+                    <td class="p-3 text-xs text-gray-200" title="${sys.userAgent || ''}">${sys.platform || 'N/A'}</td>
+                    <td class="p-3 text-xs text-gray-200">${sys.cpuCores || 'N/A'}</td>
+                    <td class="p-3 text-xs text-gray-200">${sys.deviceMemory || 'N/A'}</td>
+                    <td class="p-3 text-xs text-gray-200">${screen}</td>
+                    <td class="p-3 text-xs text-gray-200" title="${sys.webglRenderer || ''}">${sys.webglRenderer ? sys.webglRenderer.substring(0, 30) + '...' : 'N/A'}</td>
+                    <td class="p-3 text-xs text-gray-200">${sys.timezone || 'N/A'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openModal(id, licenseId, name, email, wa) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'assign-modal') {
+                document.getElementById('assign-license-id').value = licenseId;
+                document.getElementById('assign-name').value = name || '';
+                document.getElementById('assign-email').value = email || '';
+                document.getElementById('assign-wa').value = wa || '';
+                setTimeout(() => document.getElementById('assign-name').focus(), 100);
+            } else if (id === 'extend-modal' || id === 'reactivate-modal') {
+                document.getElementById(id.replace('-modal', '') + '-license-id').value = licenseId;
+                document.getElementById(id.replace('-modal', '') + '-days').value = 30;
+                setTimeout(() => document.getElementById(id.replace('-modal', '') + '-days').focus(), 100);
+            }
+        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        async function saveAssignment() {
+            const id = document.getElementById('assign-license-id').value;
+            const body = { name: document.getElementById('assign-name').value, email: document.getElementById('assign-email').value, whatsapp: document.getElementById('assign-wa').value };
+            console.log('Saving assignment for license ID:', id, 'with data:', body);
+            try {
+                const response = await fetch(`${API_BASE}/admin/assign/${id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                const result = await response.json();
+                console.log('Assign response:', result);
+                if (response.ok) {
+                    closeModal('assign-modal');
+                    loadData();
+                } else {
+                    alert('Failed to save: ' + (result.detail || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Assign error:', err);
+                alert('Error saving assignment: ' + err.message);
+            }
+        }
+        async function saveExtension() {
+            const id = document.getElementById('extend-license-id').value;
+            const days = document.getElementById('extend-days').value;
+            await fetch(`${API_BASE}/admin/extend/${id}/${days}`, { method: 'POST' });
+            closeModal('extend-modal'); loadData();
+        }
+        async function saveReactivation() {
+            const id = document.getElementById('reactivate-license-id').value;
+            const days = document.getElementById('reactivate-days').value;
+            await fetch(`${API_BASE}/admin/reactivate/${id}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({days: parseInt(days)}) });
+            closeModal('reactivate-modal'); loadData();
+        }
+        async function approveLicense(id) { await fetch(`${API_BASE}/admin/approve/${id}`, {method: 'POST'}); loadData(); }
+        async function revokeLicense(id) { if(confirm('Revoke?')) { await fetch(`${API_BASE}/admin/revoke/${id}`, {method: 'POST'}); loadData(); } }
+        async function trashLog(id) { if(confirm('Trash this log?')) { await fetch(`${API_BASE}/admin/logs/trash/${id}`, {method: 'POST'}); loadData(); } }
+
+        async function showTrashBin() {
+            const res = await fetch(`${API_BASE}/admin/logs?show_deleted=true`);
+            const logs = await res.json();
+            document.getElementById('trash-container').innerHTML = logs.length === 0 ? '<p class="text-gray-400">Empty</p>' : logs.map(l => `<div class="bg-gray-900 p-3 rounded border border-gray-700 flex justify-between items-center"><div><span class="text-blue-400 text-xs">[${new Date(l.created_at).toLocaleString()}]</span> <span class="text-yellow-400 text-xs font-bold ml-2">${l.log_type}</span> <span class="text-gray-500 text-xs ml-2">(${l.device_id})</span><p class="text-gray-300 text-xs mt-1">${l.payload}</p></div><button onclick="restoreLog(${l.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Restore</button></div>`).join('');
+            document.getElementById('trash-modal').classList.remove('hidden');
+        }
+        async function restoreLog(id) { await fetch(`${API_BASE}/admin/logs/restore/${id}`, {method: 'POST'}); showTrashBin(); loadData(); }
+        async function emptyTrash() { if(confirm('Permanently delete?')) { await fetch(`${API_BASE}/admin/logs/empty-trash`, {method: 'POST'}); showTrashBin(); loadData(); } }
+
+        async function openConfigModal() {
+            const res = await fetch(`${API_BASE}/admin/config`);
+            const apps = await res.json();
+            document.getElementById('config-apps-list').innerHTML = apps.map(a => `<div class="bg-gray-700 p-4 rounded"><h4 class="font-bold text-blue-400 mb-2">${a.id}</h4><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-gray-400">Trial Days:</label><input type="number" id="trial-${a.id}" value="${a.trial_days}" class="w-full p-2 bg-gray-800 rounded text-white border border-gray-600"></div><div><label class="text-xs text-gray-400">Reminder Days:</label><input type="number" id="reminder-${a.id}" value="${a.reminder_days || 3}" class="w-full p-2 bg-gray-800 rounded text-white border border-gray-600"></div></div><button onclick="saveConfig('${a.id}')" class="mt-2 w-full bg-green-600 hover:bg-green-700 text-white py-1 rounded text-sm">Save</button></div>`).join('');
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+        async function saveConfig(appId) {
+            const body = { trialDays: parseInt(document.getElementById(`trial-${appId}`).value), reminderDays: parseInt(document.getElementById(`reminder-${appId}`).value) };
+            const res = await fetch(`${API_BASE}/admin/config/${appId}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            if (res.ok) alert('Saved!'); else alert('Failed');
+        }
+
+        function openPasswordModal() { document.getElementById('old-password').value=''; document.getElementById('new-password').value=''; document.getElementById('confirm-password').value=''; document.getElementById('password-modal').classList.remove('hidden'); setTimeout(() => document.getElementById('old-password').focus(), 100); }
+        async function savePassword() {
+            const oldP = document.getElementById('old-password').value;
+            const newP = document.getElementById('new-password').value;
+            if (newP !== document.getElementById('confirm-password').value) return alert('Passwords do not match');
+            const res = await fetch(`${API_BASE}/admin/change-password`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({oldPassword: oldP, newPassword: newP}) });
+            if (res.ok) { alert('Changed!'); closeModal('password-modal'); } else alert('Failed');
+        }
+
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.classList.contains('modal-input')) {
+                e.preventDefault();
+                const modal = e.target.closest('.fixed');
+                if (modal.id === 'assign-modal') saveAssignment();
+                else if (modal.id === 'extend-modal') saveExtension();
+                else if (modal.id === 'reactivate-modal') saveReactivation();
+                else if (modal.id === 'password-modal') savePassword();
+            }
+        });
+    </script>
+</body>
+</html>
