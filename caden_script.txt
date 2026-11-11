@@ -3,7 +3,7 @@
 (function () {
     const CADEN_VERSION = "0.6.3";
     const CADEN_CONFIG = {
-        appId: "RCM_DASHBOARD",
+        appId: "RCM",
         appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown',
         serverUrl: "https://caden.prasanti.com",
         wssUrl: "wss://caden.prasanti.com/v1/stream",
@@ -73,7 +73,7 @@
             const inputs = ctxString + navigator.userAgent + screen.width + screen.height + navigator.hardwareConcurrency;
             for (let i = 0; i < inputs.length; i++) { const char = inputs.charCodeAt(i); hash = ((hash << 5) - hash) + char; hash |= 0; }
             // Prefix based on App ID (e.g., RCM_DASHBOARD -> RCM)
-            const prefix = CADEN_CONFIG.appId.split('_')[0].toUpperCase();
+            const prefix = CADEN_CONFIG.appId.toUpperCase();
             return prefix + "-" + Math.abs(hash).toString(16).toUpperCase() + "-" + getPersistentUUID().split('-')[0];
         } catch (e) { return "RCM-GENERIC-" + getPersistentUUID().split('-')[0]; }
     }

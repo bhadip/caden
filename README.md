@@ -32,8 +32,8 @@ The dashboard provides robust tools for managing telemetry data:
 ## Multi-App Support
 CADEN is designed to manage multiple applications. Each application requires its own tailored client script.
 - The script file should be named `caden_script_<APP_ID>.txt` (e.g., `caden_script_rcm.txt`).
-- The `appId` inside the script must match the application ID registered in the CADEN Dashboard (e.g., `RCM_DASHBOARD`).
-- The Device ID prefix is automatically derived from the `appId` (e.g., `RCM_DASHBOARD` generates `RCM-XXXX-YYYY`).
+- The `appId` inside the script must match the application ID registered in the CADEN Dashboard (e.g., `RCM`).
+- The Device ID prefix is automatically derived from the `appId` (e.g., `RCM` generates `RCM-XXXX-YYYY`).
 
 ## Client Integration (For App Developers)
 To protect your application, include the following CSS snippet in the `<head>` of your `index.html` to prevent flash of unlicensed content:
@@ -50,7 +50,7 @@ Then, inject the full CADEN client script (provided below) before the closing `<
 (function () {
     const CADEN_VERSION = "0.6.2";
     const CADEN_CONFIG = {
-        appId: "RCM_DASHBOARD",
+        appId: "RCM",
         serverUrl: "https://caden.prasanti.com",
         wssUrl: "wss://caden.prasanti.com/v1/stream",
         trialDays: 3, 
