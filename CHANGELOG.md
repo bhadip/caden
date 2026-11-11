@@ -1,5 +1,13 @@
 # CADEN Revision History
 
+## [Dashboard v0.5.0 & Backend v1.1.0] - 2026-11-12
+### Added
+- **Bulk Delete/Restore for Telemetry Logs**: Added checkboxes to select multiple logs. "Delete Selected" moves them to the Trash Bin; "Restore Selected" recovers them.
+- **Enhanced Trash Bin UI**: Redesigned modal with a fixed header/footer layout. Added a total record count and a live badge showing the number of selected records for bulk restoration.
+- **Select All Functionality**: Added "Select All" checkboxes for both the main Telemetry Logs view and the Trash Bin.
+### Fixed
+- **FastAPI 422 Error**: Fixed the `/admin/logs/bulk-action` endpoint by manually parsing the JSON body via `Request.json()`, resolving parameter mapping conflicts.
+
 ## [Dashboard v0.4.9] - 2026-11-11
 ### Added
 - Navigation tracking: Records user's active tab and recent navigation history when errors occur, visible in telemetry logs.

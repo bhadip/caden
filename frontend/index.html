@@ -187,9 +187,19 @@
         <!-- LOGS TAB -->
         <div id="view-logs" class="tab-content hidden">
             <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Telemetry Logs</h2>
-                    <button onclick="showTrashBin()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">🗑️ Trash Bin</button>
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-2xl font-bold">Telemetry Logs</h2>
+                        <label class="text-xs text-gray-400 flex items-center cursor-pointer bg-gray-700 px-3 py-2 rounded">
+                            <input type="checkbox" id="select-all-logs" onchange="toggleSelectAll(this)" class="mr-2 w-4 h-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-600">
+                            Select All
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-bulk-delete" onclick="bulkAction('trash')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm hidden">🗑️ Delete Selected</button>
+                        <button id="btn-bulk-restore" onclick="bulkAction('restore')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm hidden">♻️ Restore Selected</button>
+                        <button onclick="showTrashBin()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">🗑️ Trash Bin</button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <input type="text" id="filter-log-device" placeholder="🔍 Device ID..." class="bg-gray-700 text-white p-2 rounded border border-gray-600" oninput="applyLogFilters()">
@@ -204,7 +214,7 @@
                         <input type="text" id="filter-log-keyword-text" placeholder="Custom..." class="bg-gray-700 text-white p-2 rounded border border-gray-600 flex-1" oninput="applyLogFilters()">
                     </div>
                     <select id="log-level-filter" class="bg-gray-700 text-white p-2 rounded border border-gray-600" onchange="applyLogFilters()">
-                        <option value="">⚡ All Levels</option><option value="1">Level 1 (Critical)</option><option value="2">Level 2 (Operations)</option>
+                        <option value=""> All Levels</option><option value="1">Level 1 (Critical)</option><option value="2">Level 2 (Operations)</option>
                     </select>
                 </div>
                 <div id="logs-count" class="text-sm text-gray-400 mb-4">Loading...</div>
@@ -269,7 +279,7 @@
     </div>
     <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-96">
-            <h3 class="text-xl font-bold mb-4 text-blue-400">⚙️ Configuration</h3>
+            <h3 class="text-xl font-bold mb-4 text-blue-400">️ Configuration</h3>
             <div id="config-apps-list" class="space-y-4"></div>
             <button onclick="closeModal('config-modal')" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Close</button>
         </div>
@@ -284,11 +294,27 @@
         </div>
     </div>
     <div id="trash-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-[800px] max-h-[80vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-blue-400">🗑️ Trash Bin</h3><button id="btn-restore-selected" onclick="bulkAction('restore')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs mr-2 hidden">♻️ Restore Selected</button>
-                <button onclick="emptyTrash()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Empty Trash</button></div>
-            <div id="trash-container" class="space-y-2"></div>
-            <button onclick="closeModal('trash-modal')" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Close</button>
+        <div class="bg-gray-800 rounded-lg border border-gray-700 w-[800px] h-[80vh] flex flex-col">
+            <!-- Fixed Header -->
+            <div class="p-6 border-b border-gray-700 flex flex-wrap justify-between items-center gap-2">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-xl font-bold text-blue-400">🗑️ Trash Bin</h3>
+                    <span id="trash-total-count" class="text-sm text-gray-400"></span>
+                    <label class="text-xs text-gray-400 flex items-center cursor-pointer bg-gray-700 px-3 py-2 rounded ml-2">
+                        <input type="checkbox" id="select-all-trash" onchange="toggleSelectAllTrash(this)" class="mr-2 w-4 h-4 rounded bg-gray-800 border-gray-600 text-blue-600 focus:ring-blue-600">
+                        Select All
+                    </label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-bulk-restore-trash" onclick="bulkAction('restore')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm hidden">
+                        ♻️ Restore Selected <span id="trash-selected-count" class="ml-1 bg-white text-green-700 px-1.5 rounded-full text-xs font-bold">0</span>
+                    </button>
+                    <button onclick="emptyTrash()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Empty Trash</button>
+                    <button onclick="closeModal('trash-modal')" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">Close</button>
+                </div>
+            </div>
+            <!-- Scrollable Content -->
+            <div id="trash-container" class="p-6 space-y-2 overflow-y-auto flex-1"></div>
         </div>
     </div>
 
@@ -430,7 +456,7 @@
             document.getElementById('logs-container').innerHTML = filtered.map(l => {
                 const levelColor = l.log_level == 1 ? 'text-red-400 bg-red-900/20' : 'text-green-400 bg-green-900/20';
                 const levelLabel = l.log_level == 1 ? 'CRITICAL' : 'OPERATION';
-                return `<div class="bg-gray-900 p-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"><div class="flex items-center gap-2 mb-1 flex-wrap"><span class="text-blue-400 text-xs">[<input type="checkbox" class="log-checkbox" value="${l.id}" onchange="updateBulkButtons()" style="margin-right:10px; transform: scale(1.2);">${formatSGT(l.created_at)}]</span><span class="${levelColor} px-2 py-0.5 rounded text-[10px] font-bold">${levelLabel}</span><span class="text-yellow-400 text-xs font-bold">${l.log_type}</span><span class="text-gray-500 text-xs font-mono">(${l.device_id})</span><button onclick="trashLog(${l.id})" class="ml-auto text-red-400 hover:text-red-300 text-xs">🗑️</button></div><div class="text-gray-300 text-xs break-all">${l.payload}</div></div>`;
+                return `<div class="bg-gray-900 p-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"><div class="flex items-center gap-2 mb-1 flex-wrap"><input type="checkbox" class="caden-log-cb" value="${l.id}" onchange="const badge = document.getElementById('btn-bulk-delete'); if(badge) badge.classList.toggle('hidden', document.querySelectorAll('.caden-log-cb:checked').length === 0); updateBulkUI();" style="width:18px;height:18px;margin-right:8px;cursor:pointer;"><span class="text-blue-400 text-xs">[${formatSGT(l.created_at)}]</span><span class="${levelColor} px-2 py-0.5 rounded text-[10px] font-bold">${levelLabel}</span><span class="text-yellow-400 text-xs font-bold">${l.log_type}</span><span class="text-gray-500 text-xs font-mono">(${l.device_id})</span><button onclick="trashLog(${l.id})" class="ml-auto text-red-400 hover:text-red-300 text-xs">🗑️</button></div><div class="text-gray-300 text-xs break-all">${l.payload}</div></div>`;
             }).join('');
         }
 
@@ -547,7 +573,8 @@
         async function showTrashBin() {
             const res = await fetch(`${API_BASE}/admin/logs?show_deleted=true`);
             const logs = await res.json();
-            document.getElementById('trash-container').innerHTML = logs.length === 0 ? '<p class="text-gray-400">Empty</p>' : logs.map(l => `<div class="bg-gray-900 p-3 rounded border border-gray-700 flex justify-between items-center"><div><span class="text-blue-400 text-xs">[<input type="checkbox" class="log-checkbox" value="${l.id}" onchange="updateBulkButtons()" style="margin-right:10px; transform: scale(1.2);">${formatSGT(l.created_at)}]</span> <span class="text-yellow-400 text-xs font-bold ml-2">${l.log_type}</span> <span class="text-gray-500 text-xs ml-2">(${l.device_id})</span><p class="text-gray-300 text-xs mt-1">${l.payload}</p></div><button onclick="restoreLog(${l.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Restore</button></div>`).join('');
+            document.getElementById('trash-total-count').innerText = `(${logs.length} records)`;
+            document.getElementById('trash-container').innerHTML = logs.length === 0 ? '<p class="text-gray-400">Empty</p>' : logs.map(l => `<div class="bg-gray-900 p-3 rounded border border-gray-700 flex justify-between items-center"><div class="flex items-center gap-3 flex-1"><input type="checkbox" class="caden-trash-cb" value="${l.id}" onchange="console.log('Checkbox clicked, value:', this.value); const badge = document.getElementById('trash-selected-count'); if(badge) badge.textContent = document.querySelectorAll('.caden-trash-cb:checked').length; updateBulkUI();" style="width:18px;height:18px;cursor:pointer;"><div><span class="text-blue-400 text-xs">[${formatSGT(l.created_at)}]</span> <span class="text-yellow-400 text-xs font-bold ml-2">${l.log_type}</span> <span class="text-gray-500 text-xs ml-2">(${l.device_id})</span><p class="text-gray-300 text-xs mt-1">${l.payload}</p></div></div><button onclick="restoreLog(${l.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs ml-2">Restore</button></div>`).join('');
             document.getElementById('trash-modal').classList.remove('hidden');
         }
         async function restoreLog(id) { await fetch(`${API_BASE}/admin/logs/restore/${id}`, {method: 'POST'}); showTrashBin(); loadData(); }
@@ -584,41 +611,63 @@
                 else if (modal.id === 'password-modal') savePassword();
             }
         });
-    
-function toggleSelectAll(source) {
-    const checkboxes = document.querySelectorAll('.log-checkbox');
-    checkboxes.forEach(cb => cb.checked = source.checked);
-    updateBulkButtons();
-}
 
-function updateBulkButtons() {
-    const checked = document.querySelectorAll('.log-checkbox:checked').length;
-    const delBtn = document.getElementById('btn-delete-selected');
-    const resBtn = document.getElementById('btn-restore-selected');
-    if (delBtn) delBtn.classList.toggle('hidden', checked === 0);
-    if (resBtn) resBtn.classList.toggle('hidden', checked === 0);
-}
-
-async function bulkAction(action) {
-    const ids = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => parseInt(cb.value));
-    if (ids.length === 0) return;
-    if (!confirm(`Are you sure you want to ${action} ${ids.length} records?`)) return;
-    
-    try {
-        const res = await fetch(`${API_BASE}/admin/logs/bulk-action`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ids: ids, action: action})
-        });
-        if (res.ok) {
-            loadData(); // Refresh data
-            if (document.getElementById('trash-modal').classList.contains('hidden') === false) {
-                showTrashBin(); // Refresh trash view if open
+        // --- Bulk Actions Logic ---
+        window.toggleSelectAll = function(source) {
+            document.querySelectorAll('.caden-log-cb').forEach(cb => cb.checked = source.checked);
+            updateBulkUI();
+        };
+        window.toggleSelectAllTrash = function(source) {
+            console.log('🔍 toggleSelectAllTrash called with:', source.checked);
+            document.querySelectorAll('.caden-trash-cb').forEach(cb => cb.checked = source.checked);
+            updateBulkUI();
+        };
+        window.updateBulkUI = function() {
+            const logCount = document.querySelectorAll('.caden-log-cb:checked').length;
+            const trashCount = document.querySelectorAll('.caden-trash-cb:checked').length;
+            
+            const delBtn = document.getElementById('btn-bulk-delete');
+            const resTrashBtn = document.getElementById('btn-bulk-restore-trash');
+            
+            // In main logs view - show Delete button
+            if (delBtn) delBtn.classList.toggle('hidden', logCount === 0);
+            // In trash modal - show Restore button
+            if (resTrashBtn) resTrashBtn.classList.toggle('hidden', trashCount === 0);
+        };
+        window.bulkAction = async function(action) {
+            let ids = [];
+            if (action === 'trash') {
+                ids = Array.from(document.querySelectorAll('.caden-log-cb:checked')).map(cb => parseInt(cb.value));
+            } else if (action === 'restore') {
+                ids = Array.from(document.querySelectorAll('.caden-trash-cb:checked')).map(cb => parseInt(cb.value));
             }
-        }
-    } catch (err) { console.error('Bulk action failed:', err); }
-}
-
-</script>
+            
+            ids = ids.filter(id => !isNaN(id));
+            if (ids.length === 0) return alert('Please select at least one record.');
+            if (!confirm(`Are you sure you want to ${action} ${ids.length} records?`)) return;
+            
+            try {
+                console.log('🔍 DEBUG: Sending bulk action payload:', { ids: ids, action: action });
+                const res = await fetch(`${API_BASE}/admin/logs/bulk-action`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ids: ids, action: action })
+                });
+                console.log('🔍 DEBUG: Bulk action response status:', res.status);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    console.error('🔍 DEBUG: Bulk action error response:', errText);
+                }
+                if (res.ok) {
+                    loadData();
+                    if (action === 'restore' && !document.getElementById('trash-modal').classList.contains('hidden')) {
+                        showTrashBin();
+                    }
+                } else {
+                    alert('Bulk action failed.');
+                }
+            } catch (err) { console.error('Bulk action error:', err); }
+        };
+    </script>
 </body>
 </html>

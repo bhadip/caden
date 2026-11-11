@@ -1,7 +1,7 @@
 import os, json, sqlite3, datetime, bcrypt, asyncio, urllib.request, urllib.error, zoneinfo, urllib.parse
 from contextlib import asynccontextmanager
 from typing import List, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks, Request, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -168,6 +168,10 @@ class PasswordChangeRequest(BaseModel):
 class AppConfig(BaseModel):
     trialDays: int
     reminderDays: int
+
+
+    ids: List[int]
+    action: str
 
 class ResetRequest(BaseModel):
     appId: str
@@ -591,15 +595,37 @@ def get_online_status():
     return {"online_devices": list(manager.active_connections.keys())}
 
 
+
 @app.post("/admin/logs/bulk-action")
-def bulk_log_action(ids: list[int], action: str):
-    conn = get_db()
-    if action == "trash":
-        conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=1 WHERE id IN ({','.join('?'*len(ids))})", ids)
-    elif action == "restore":
-        conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=0 WHERE id IN ({','.join('?'*len(ids))})", ids)
-    conn.commit()
-    conn.close()
-    return {"status": "success", "count": len(ids)}
+async def bulk_log_action(request: Request):
+    """Bulk action endpoint for trash/restore operations."""
+    try:
+        body = await request.json()
+        ids = body.get("ids", [])
+        action = body.get("action", "")
+        
+        print(f"🔍 DEBUG: Received bulk action - ids: {ids}, action: {action}")
+        
+        conn = get_db()
+        if not ids:
+            conn.close()
+            return {"status": "error", "message": "No IDs provided"}
+        
+        placeholders = ','.join('?' * len(ids))
+        if action == "trash":
+            conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=1 WHERE id IN ({placeholders})", ids)
+        elif action == "restore":
+            conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=0 WHERE id IN ({placeholders})", ids)
+        else:
+            conn.close()
+            return {"status": "error", "message": f"Unknown action: {action}"}
+        
+        conn.commit()
+        conn.close()
+        print(f"✅ Bulk action successful: {action} {len(ids)} records")
+        return {"status": "success", "action": action, "count": len(ids)}
+    except Exception as e:
+        print(f"❌ Bulk action error: {e}")
+        return {"status": "error", "message": str(e)}
 
 app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")

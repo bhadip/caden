@@ -22,6 +22,13 @@ CADEN is a lightweight, stealthy, and robust licensing and governance engine des
 4. Default Admin Credentials: `admin` / `admin123` (Change immediately via the dashboard).
 
 
+
+## Telemetry Log Management
+The dashboard provides robust tools for managing telemetry data:
+- **Bulk Actions**: Select multiple logs using checkboxes and use the "Delete Selected" button to move them to the Trash Bin.
+- **Trash Bin**: A dedicated modal to view deleted logs. Features include "Select All", a live counter for selected records, and a "Restore Selected" button to recover logs.
+- **Fixed Layout**: The Trash Bin modal uses a fixed header and footer, ensuring action buttons remain accessible even with long lists of logs.
+
 ## Multi-App Support
 CADEN is designed to manage multiple applications. Each application requires its own tailored client script.
 - The script file should be named `caden_script_<APP_ID>.txt` (e.g., `caden_script_rcm.txt`).
