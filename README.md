@@ -21,6 +21,13 @@ CADEN is a lightweight, stealthy, and robust licensing and governance engine des
 3. Access the dashboard at `http://localhost:8000`.
 4. Default Admin Credentials: `admin` / `admin123` (Change immediately via the dashboard).
 
+
+## Multi-App Support
+CADEN is designed to manage multiple applications. Each application requires its own tailored client script.
+- The script file should be named `caden_script_<APP_ID>.txt` (e.g., `caden_script_rcm.txt`).
+- The `appId` inside the script must match the application ID registered in the CADEN Dashboard (e.g., `RCM_DASHBOARD`).
+- The Device ID prefix is automatically derived from the `appId` (e.g., `RCM_DASHBOARD` generates `RCM-XXXX-YYYY`).
+
 ## Client Integration (For App Developers)
 To protect your application, include the following CSS snippet in the `<head>` of your `index.html` to prevent flash of unlicensed content:
 ```html
