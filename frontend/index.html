@@ -9,6 +9,7 @@
 <style>
     /* Mobile-only optimizations - desktop UI unchanged */
     @media (max-width: 767px) {
+        html { font-size: 87.5%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         .container { padding: 0.75rem !important; }
         .tab-btn { padding-left: 0.6rem !important; padding-right: 0.6rem !important; font-size: 0.8rem; }
         #view-licenses table, #view-profiles table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
@@ -33,7 +34,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
                 <img src="/favicon.svg" alt="CADEN Logo" class="w-10 h-10">
-                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.7</span></h1>
+                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.8</span></h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="openConfigModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">⚙️ Config</button>

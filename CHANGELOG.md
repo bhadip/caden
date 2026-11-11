@@ -1,5 +1,9 @@
 # CADEN Revision History
 
+## [Dashboard v0.4.8] - 2026-11-11
+### Changed
+- Mobile typography now ~12.5% smaller by default and scales with the device's system/browser font-size setting (percentage-based rem root + text-size-adjust:100%). Desktop unchanged.
+
 ## [Dashboard v0.4.7] - 2026-11-11
 ### Added
 - Mobile-responsive layout: viewport meta tag + mobile-only CSS (scrollable tables, full-width modals, stacked header). Desktop UI unchanged.
