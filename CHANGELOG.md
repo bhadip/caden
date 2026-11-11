@@ -1,5 +1,12 @@
 # CADEN Revision History
 
+## [Dashboard v0.4.7] - 2026-11-11
+### Added
+- Mobile-responsive layout: viewport meta tag + mobile-only CSS (scrollable tables, full-width modals, stacked header). Desktop UI unchanged.
+- Clickable owner contacts: email opens mail client via mailto, WhatsApp opens wa.me chat. Numbers with leading 0 auto-converted to Indonesia +62.
+### Fixed
+- All dashboard timestamps (Telemetry Logs, Trash Bin, License Expiry) now display in CADEN server timezone (Asia/Singapore) instead of UTC.
+
 ## [v0.6.2] - 2026-11-11
 ### Added
 - **Local Revocation Persistence**: Added `KEYS.revokedStatus` to `localStorage`. Devices now remember their revoked state even when offline, preventing bypass by disconnecting the network.

@@ -2,9 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CADEN Governance Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
+<style>
+    /* Mobile-only optimizations - desktop UI unchanged */
+    @media (max-width: 767px) {
+        .container { padding: 0.75rem !important; }
+        .tab-btn { padding-left: 0.6rem !important; padding-right: 0.6rem !important; font-size: 0.8rem; }
+        #view-licenses table, #view-profiles table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        th, td { padding: 0.5rem !important; }
+        #assign-modal > div, #extend-modal > div, #reactivate-modal > div,
+        #config-modal > div, #password-modal > div, #trash-modal > div { width: calc(100vw - 2rem) !important; max-width: 100%; }
+    }
+</style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
     <div id="login-screen" class="flex items-center justify-center h-screen">
@@ -18,10 +30,10 @@
     </div>
 
     <div id="dashboard" class="hidden container mx-auto p-6">
-        <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
                 <img src="/favicon.svg" alt="CADEN Logo" class="w-10 h-10">
-                <h1 class="text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.6</span></h1>
+                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.7</span></h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="openConfigModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">⚙️ Config</button>
@@ -173,6 +185,22 @@
 
     <script>
         const API_BASE = window.location.origin;
+
+        // Convert stored timestamp to CADEN server timezone (Singapore)
+        function formatSGT(dateStr) {
+            if (!dateStr) return 'N/A';
+            const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr.replace(' ', 'T') + 'Z');
+            return d.toLocaleString('en-GB', { timeZone: 'Asia/Singapore', hour12: false });
+        }
+
+        // Normalize WhatsApp: keep +XX, strip symbols, leading 0 -> 62 (Indonesia)
+        function waLink(num) {
+            let n = (num || '').replace(/[^0-9+]/g, '');
+            if (n.startsWith('+')) n = n.substring(1);
+            else if (n.startsWith('0')) n = '62' + n.substring(1);
+            return n;
+        }
+
         let allLogs = [];
         let allLicenses = [];
         let onlineDevices = []; // NEW: Track online devices
@@ -261,13 +289,13 @@
                 
                 // Clean display (no emojis)
                 const nameDisplay = l.owner_name || 'Unassigned';
-                const emailDisplay = l.owner_email || '';
-                const waDisplay = l.owner_whatsapp || '';
+                const emailDisplay = l.owner_email ? `<a href="mailto:${l.owner_email}" class="text-blue-400 hover:underline">${l.owner_email}</a>` : '';
+                const waDisplay = l.owner_whatsapp ? `<a href="https://wa.me/${waLink(l.owner_whatsapp)}" target="_blank" rel="noopener" class="text-green-400 hover:underline">${l.owner_whatsapp}</a>` : '';
                 
                 return `<tr class="border-b border-gray-700 hover:bg-gray-750"><td class="p-3 text-xs font-mono text-blue-300">
     <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
     ${l.device_id}
-</td><td class="p-3 text-xs text-gray-300">${nameDisplay}<br><span class="text-gray-500">${emailDisplay} ${waDisplay}</span></td><td class="p-3 ${statusColor} font-bold text-xs">${l.status}</td><td class="p-3 text-xs text-gray-400">${l.expires_at ? new Date(l.expires_at).toLocaleString() : 'N/A'}</td><td class="p-3">${actions}</td></tr>`;
+</td><td class="p-3 text-xs text-gray-300">${nameDisplay}<br><span class="text-gray-500">${emailDisplay} ${waDisplay}</span></td><td class="p-3 ${statusColor} font-bold text-xs">${l.status}</td><td class="p-3 text-xs text-gray-400">${l.expires_at ? formatSGT(l.expires_at) : 'N/A'}</td><td class="p-3">${actions}</td></tr>`;
             }).join('');
         }
 
@@ -293,7 +321,7 @@
             document.getElementById('logs-container').innerHTML = filtered.map(l => {
                 const levelColor = l.log_level == 1 ? 'text-red-400 bg-red-900/20' : 'text-green-400 bg-green-900/20';
                 const levelLabel = l.log_level == 1 ? 'CRITICAL' : 'OPERATION';
-                return `<div class="bg-gray-900 p-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"><div class="flex items-center gap-2 mb-1 flex-wrap"><span class="text-blue-400 text-xs">[${new Date(l.created_at).toLocaleString()}]</span><span class="${levelColor} px-2 py-0.5 rounded text-[10px] font-bold">${levelLabel}</span><span class="text-yellow-400 text-xs font-bold">${l.log_type}</span><span class="text-gray-500 text-xs font-mono">(${l.device_id})</span><button onclick="trashLog(${l.id})" class="ml-auto text-red-400 hover:text-red-300 text-xs">🗑️</button></div><div class="text-gray-300 text-xs break-all">${l.payload}</div></div>`;
+                return `<div class="bg-gray-900 p-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"><div class="flex items-center gap-2 mb-1 flex-wrap"><span class="text-blue-400 text-xs">[${formatSGT(l.created_at)}]</span><span class="${levelColor} px-2 py-0.5 rounded text-[10px] font-bold">${levelLabel}</span><span class="text-yellow-400 text-xs font-bold">${l.log_type}</span><span class="text-gray-500 text-xs font-mono">(${l.device_id})</span><button onclick="trashLog(${l.id})" class="ml-auto text-red-400 hover:text-red-300 text-xs">🗑️</button></div><div class="text-gray-300 text-xs break-all">${l.payload}</div></div>`;
             }).join('');
         }
 
@@ -410,7 +438,7 @@
         async function showTrashBin() {
             const res = await fetch(`${API_BASE}/admin/logs?show_deleted=true`);
             const logs = await res.json();
-            document.getElementById('trash-container').innerHTML = logs.length === 0 ? '<p class="text-gray-400">Empty</p>' : logs.map(l => `<div class="bg-gray-900 p-3 rounded border border-gray-700 flex justify-between items-center"><div><span class="text-blue-400 text-xs">[${new Date(l.created_at).toLocaleString()}]</span> <span class="text-yellow-400 text-xs font-bold ml-2">${l.log_type}</span> <span class="text-gray-500 text-xs ml-2">(${l.device_id})</span><p class="text-gray-300 text-xs mt-1">${l.payload}</p></div><button onclick="restoreLog(${l.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Restore</button></div>`).join('');
+            document.getElementById('trash-container').innerHTML = logs.length === 0 ? '<p class="text-gray-400">Empty</p>' : logs.map(l => `<div class="bg-gray-900 p-3 rounded border border-gray-700 flex justify-between items-center"><div><span class="text-blue-400 text-xs">[${formatSGT(l.created_at)}]</span> <span class="text-yellow-400 text-xs font-bold ml-2">${l.log_type}</span> <span class="text-gray-500 text-xs ml-2">(${l.device_id})</span><p class="text-gray-300 text-xs mt-1">${l.payload}</p></div><button onclick="restoreLog(${l.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Restore</button></div>`).join('');
             document.getElementById('trash-modal').classList.remove('hidden');
         }
         async function restoreLog(id) { await fetch(`${API_BASE}/admin/logs/restore/${id}`, {method: 'POST'}); showTrashBin(); loadData(); }
