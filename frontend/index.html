@@ -285,7 +285,8 @@
     </div>
     <div id="trash-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 w-[800px] max-h-[80vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-blue-400">🗑️ Trash Bin</h3><button onclick="emptyTrash()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Empty Trash</button></div>
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-blue-400">🗑️ Trash Bin</h3><button id="btn-restore-selected" onclick="bulkAction('restore')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs mr-2 hidden">♻️ Restore Selected</button>
+                <button onclick="emptyTrash()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Empty Trash</button></div>
             <div id="trash-container" class="space-y-2"></div>
             <button onclick="closeModal('trash-modal')" class="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded">Close</button>
         </div>
@@ -583,6 +584,41 @@
                 else if (modal.id === 'password-modal') savePassword();
             }
         });
-    </script>
+    
+function toggleSelectAll(source) {
+    const checkboxes = document.querySelectorAll('.log-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    updateBulkButtons();
+}
+
+function updateBulkButtons() {
+    const checked = document.querySelectorAll('.log-checkbox:checked').length;
+    const delBtn = document.getElementById('btn-delete-selected');
+    const resBtn = document.getElementById('btn-restore-selected');
+    if (delBtn) delBtn.classList.toggle('hidden', checked === 0);
+    if (resBtn) resBtn.classList.toggle('hidden', checked === 0);
+}
+
+async function bulkAction(action) {
+    const ids = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => parseInt(cb.value));
+    if (ids.length === 0) return;
+    if (!confirm(`Are you sure you want to ${action} ${ids.length} records?`)) return;
+    
+    try {
+        const res = await fetch(`${API_BASE}/admin/logs/bulk-action`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: ids, action: action})
+        });
+        if (res.ok) {
+            loadData(); // Refresh data
+            if (document.getElementById('trash-modal').classList.contains('hidden') === false) {
+                showTrashBin(); // Refresh trash view if open
+            }
+        }
+    } catch (err) { console.error('Bulk action failed:', err); }
+}
+
+</script>
 </body>
 </html>

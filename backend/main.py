@@ -590,4 +590,16 @@ def get_online_status():
     """Returns a list of currently online device IDs based on active WebSockets."""
     return {"online_devices": list(manager.active_connections.keys())}
 
+
+@app.post("/admin/logs/bulk-action")
+def bulk_log_action(ids: list[int], action: str):
+    conn = get_db()
+    if action == "trash":
+        conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=1 WHERE id IN ({','.join('?'*len(ids))})", ids)
+    elif action == "restore":
+        conn.execute(f"UPDATE UNIFIED_LOGS SET is_deleted=0 WHERE id IN ({','.join('?'*len(ids))})", ids)
+    conn.commit()
+    conn.close()
+    return {"status": "success", "count": len(ids)}
+
 app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")
