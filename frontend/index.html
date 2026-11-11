@@ -8,6 +8,35 @@
     <script src="https://cdn.tailwindcss.com"></script>
 <style>
     /* Mobile-only optimizations - desktop UI unchanged */
+        /* Mobile: Stack Licenses as cards (like Device Profiles) */
+        @media (max-width: 767px) {
+            #view-licenses table { display: block; }
+            #view-licenses thead { display: none; }
+            #view-licenses tbody, #view-licenses tr, #view-licenses td { display: block; width: 100%; }
+            #view-licenses tr { 
+                background: #1e293b; 
+                border-radius: 8px; 
+                padding: 1rem; 
+                margin-bottom: 1rem;
+                border: 1px solid #334155;
+            }
+            #view-licenses td { 
+                padding: 0.5rem 0; 
+                text-align: left;
+                border: none;
+            }
+            #view-licenses td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #94a3b8;
+                display: block;
+                font-size: 0.75rem;
+                margin-bottom: 0.25rem;
+            }
+            #view-licenses .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+            #view-licenses .action-buttons button { flex: 1; min-width: 80px; }
+        }
+
     @media (max-width: 767px) {
         html { font-size: 87.5%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         .container { padding: 0.75rem !important; }
@@ -17,7 +46,85 @@
         #assign-modal > div, #extend-modal > div, #reactivate-modal > div,
         #config-modal > div, #password-modal > div, #trash-modal > div { width: calc(100vw - 2rem) !important; max-width: 100%; }
     }
+
+        .date-range-flex {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        @media (max-width: 767px) {
+            .date-range-flex {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
 </style>
+
+    <!-- CADEN Navigation Tracker -->
+    <script>
+    (function() {
+        let currentPage = window.location.pathname;
+        let activeTab = 'Licenses';
+        let navigationHistory = [];
+        
+        // Track tab changes
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tab-btn')) {
+                activeTab = e.target.textContent.trim();
+                logNavigation('Tab Change', activeTab);
+            }
+        });
+        
+        // Track URL changes
+        window.addEventListener('popstate', function() {
+            currentPage = window.location.pathname;
+            logNavigation('URL Change', currentPage);
+        });
+        
+        function logNavigation(type, target) {
+            navigationHistory.push({
+                timestamp: new Date().toISOString(),
+                type: type,
+                target: target,
+                tab: activeTab
+            });
+            // Keep last 50 entries
+            if (navigationHistory.length > 50) navigationHistory.shift();
+        }
+        
+        // Expose for error tracking
+        window.getCadenNavigationContext = function() {
+            return {
+                currentPage: currentPage,
+                activeTab: activeTab,
+                recentNav: navigationHistory.slice(-10)
+            };
+        };
+        
+        // Enhanced error tracking with navigation context
+        const originalOnError = window.onerror;
+        window.onerror = function(msg, url, line, col, error) {
+            const context = window.getCadenNavigationContext();
+            const errorData = {
+                message: msg,
+                url: url,
+                line: line,
+                column: col,
+                timestamp: new Date().toISOString(),
+                navigation: context
+            };
+            
+            // Send to CADEN telemetry if available
+            if (window.storeSystemTelemetry) {
+                window.storeSystemTelemetry('NAVIGATION_ERROR', JSON.stringify(errorData), 1);
+            }
+            
+            if (originalOnError) return originalOnError.apply(this, arguments);
+            return false;
+        };
+    })();
+    </script>
+    <!-- End Navigation Tracker -->
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
     <div id="login-screen" class="flex items-center justify-center h-screen">
@@ -34,7 +141,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
                 <img src="/favicon.svg" alt="CADEN Logo" class="w-10 h-10">
-                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.8</span></h1>
+                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.9</span></h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="openConfigModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">⚙️ Config</button>

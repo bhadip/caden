@@ -1,5 +1,14 @@
 # CADEN Revision History
 
+## [Dashboard v0.4.9] - 2026-11-11
+### Added
+- Navigation tracking: Records user's active tab and recent navigation history when errors occur, visible in telemetry logs.
+- Enhanced error context: Runtime errors now include which tab/page the user was viewing.
+### Fixed
+- Mobile Licenses tab: Now displays as stacked cards (like Device Profiles) instead of horizontal scroll.
+- Desktop filter alignment: Date range pickers now properly aligned with other filters.
+- Runtime error prevention: Added undefined checks for failureModes data to prevent cascade errors when data not loaded.
+
 ## [Dashboard v0.4.8] - 2026-11-11
 ### Changed
 - Mobile typography now ~12.5% smaller by default and scales with the device's system/browser font-size setting (percentage-based rem root + text-size-adjust:100%). Desktop unchanged.
