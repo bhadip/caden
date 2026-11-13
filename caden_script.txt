@@ -195,6 +195,30 @@
                     CADEN_CONFIG.trialDays = data.trial_days;
                     localStorage.setItem(KEYS.serverTrialDays, data.trial_days);
                 }
+                if (data.owner_name) {
+                    const currentInfo = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
+                    currentInfo.name = data.owner_name;
+                    currentInfo.email = data.owner_email;
+                    currentInfo.whatsapp = data.owner_whatsapp;
+                    localStorage.setItem(KEYS.userInfo, JSON.stringify(currentInfo));
+                }
+
+                if (data.owner_name) {
+                    const currentInfo = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
+                    currentInfo.name = data.owner_name;
+                    currentInfo.email = data.owner_email;
+                    currentInfo.whatsapp = data.owner_whatsapp;
+                    localStorage.setItem(KEYS.userInfo, JSON.stringify(currentInfo));
+                }
+
+                if (data.owner_name) {
+                    const currentInfo = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
+                    currentInfo.name = data.owner_name;
+                    currentInfo.email = data.owner_email;
+                    currentInfo.whatsapp = data.owner_whatsapp;
+                    localStorage.setItem(KEYS.userInfo, JSON.stringify(currentInfo));
+                }
+
                 if (data.token) {
                     const existingToken = localStorage.getItem(KEYS.token);
                     if (existingToken) {

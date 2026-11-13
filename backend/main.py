@@ -201,12 +201,10 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         raise HTTPException(status_code=403, detail="APPEAL_PENDING")
 
     if latest_lic and latest_lic["status"] == "ACTIVE":
-        if ownerName or ownerEmail or ownerWhatsapp:
-            conn.execute("UPDATE LICENSES SET owner_name=?, owner_email=?, owner_whatsapp=? WHERE id=?",
-                         (ownerName or latest_lic["owner_name"], ownerEmail or latest_lic["owner_email"], ownerWhatsapp or latest_lic["owner_whatsapp"], latest_lic["id"]))
-            conn.commit()
         conn.close()
-        return {"token": None, "status": latest_lic["status"], "message": "Already registered"}
+        return {"token": None, "status": latest_lic["status"], "message": "Already registered", 
+                "expires_at": latest_lic["expires_at"],
+                "owner_name": latest_lic["owner_name"], "owner_email": latest_lic["owner_email"], "owner_whatsapp": latest_lic["owner_whatsapp"]}
 
     trial_days = app_row["trial_days"]
     now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -224,7 +222,7 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
     print(f"DEBUG: Sending Telegram for new device: {msg}")
     send_telegram(msg, get_license_buttons(deviceId))
     
-    return {"token": token, "expires_at": expires_at.isoformat().replace('+00:00', 'Z'), "status": "ACTIVE", "trial_days": trial_days}
+    return {"token": token, "expires_at": expires_at.isoformat().replace('+00:00', 'Z'), "status": "ACTIVE", "trial_days": trial_days, "owner_name": ownerName, "owner_email": ownerEmail, "owner_whatsapp": ownerWhatsapp}
 
 @app.post("/v1/renewal_request")
 async def request_renewal(data: RenewalRequest, background_tasks: BackgroundTasks):
