@@ -499,3 +499,9 @@ const APP_BUILD_META = {
 };
 ```
 CADEN merges every key of `APP_BUILD_META` into the device profile. The dashboard shows them in one dynamic **Build Metadata** column, so onboarding an app with different components requires **no dashboard changes**.
+
+## Client Display & Sync Features
+To display User Name and License Expiry in the client app (e.g., RCM Dashboard):
+- The backend `/v1/activate` endpoint now returns `owner_name` and `expires_at` directly.
+- The CADEN client script (v0.6.5+) automatically syncs `owner_name` from the server to `localStorage` to prevent stale data.
+- The client app should poll `localStorage.getItem('RCM_USER_INFO')` for the name and decode the JWT from `RCM_AUTH_TOKEN` (or use the server response) for the expiry date.

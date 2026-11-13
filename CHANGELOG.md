@@ -1,5 +1,12 @@
 # CADEN Revision History
 
+## [Script v0.6.5 & Backend v1.2.0] - 2026-11-14
+### Added
+- **License Expiry API**: Backend `/v1/activate` now explicitly returns `expires_at` alongside the token to simplify client-side expiry display.
+### Changed
+- **Owner Sync Logic**: CADEN client script now syncs `owner_name` from the server response to `localStorage`, ensuring the client app always displays the latest admin-assigned name.
+- **Admin Overwrite Prevention**: Backend no longer accepts owner updates from active clients, preventing the client from overwriting admin changes in the CADEN Dashboard.
+
 ## [Script v0.6.5 & Dashboard v0.5.2] - 2026-11-13
 ### Changed
 - **Dynamic Build Metadata**: Client script now spreads a generic `APP_BUILD_META` object into the device profile instead of hardcoding fields. The Device Profiles tab replaces the 5 fixed version columns with a single auto-rendering **Build Metadata** column (and a unified filter). New apps with any set of build components require zero dashboard changes.
