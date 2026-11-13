@@ -108,9 +108,9 @@ def init_db():
     if not cursor.fetchone():
         hashed_pw = bcrypt.hashpw(b"admin123", bcrypt.gensalt()).decode("utf-8")
         conn.execute("INSERT INTO ADMIN_USERS (username, password_hash) VALUES (?, ?)", ("admin", hashed_pw))
-    cursor = conn.execute("SELECT id FROM APPLICATIONS WHERE id='RCM_DASHBOARD'")
+    cursor = conn.execute("SELECT id FROM APPLICATIONS WHERE id='RCM'")
     if not cursor.fetchone():
-        conn.execute("INSERT INTO APPLICATIONS (id, name, grace_days, reminder_days) VALUES (?, ?, ?, ?)", ("RCM_DASHBOARD", "RCM Dashboard", 30, 3))
+        conn.execute("INSERT INTO APPLICATIONS (id, name, grace_days, reminder_days) VALUES (?, ?, ?, ?)", ("RCM", "RCM Dashboard", 30, 3))
     conn.commit()
     conn.close()
 
@@ -231,7 +231,7 @@ async def request_renewal(data: RenewalRequest, background_tasks: BackgroundTask
     conn = get_db()
     now_utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
     conn.execute("INSERT INTO LICENSES (app_id, device_id, owner_name, owner_email, owner_whatsapp, status, renewal_requested_at) VALUES (?, ?, ?, ?, ?, 'PENDING_REVIEW', ?)",
-                 ("RCM_DASHBOARD", data.deviceId, data.name, data.email, data.whatsapp, now_utc))
+                 ("RCM", data.deviceId, data.name, data.email, data.whatsapp, now_utc))
     conn.commit()
     conn.close()
     background_tasks.add_task(send_telegram, f"🔄 <b>Renewal Request</b>\n\n👤 {data.name}\n📧 {data.email}\n📱 WA: {data.whatsapp}\n🖥️ Device: {data.deviceId}")
@@ -627,5 +627,20 @@ async def bulk_log_action(request: Request):
     except Exception as e:
         print(f"❌ Bulk action error: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@app.delete("/admin/licenses/{license_id}")
+def delete_license(license_id: int):
+    """Permanently delete a license and its associated telemetry logs."""
+    conn = get_db()
+    lic = conn.execute("SELECT device_id FROM LICENSES WHERE id=?", (license_id,)).fetchone()
+    if lic:
+        conn.execute("DELETE FROM LICENSES WHERE id=?", (license_id,))
+        conn.execute("DELETE FROM UNIFIED_LOGS WHERE device_id=?", (lic["device_id"],))
+        conn.commit()
+        conn.close()
+        return {"status": "deleted", "device_id": lic["device_id"]}
+    conn.close()
+    raise HTTPException(status_code=404, detail="License not found")
 
 app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")

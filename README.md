@@ -478,3 +478,11 @@ Then, inject the full CADEN client script (provided below) before the closing `<
 </script>
 <!-- END CADEN LICENSING & GOVERNANCE COMPONENT -->
 ```
+
+## Admin Utilities
+### Permanent License Deletion
+To completely remove a license and its telemetry logs from the database (bypassing the UI), use the provided script:
+```bash
+python3 delete_license.py <device_id_or_license_id>
+```
+Alternatively, use the **Delete** button in the CADEN Dashboard License Management table (available for Revoked licenses).

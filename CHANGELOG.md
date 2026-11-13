@@ -1,5 +1,12 @@
 # CADEN Revision History
 
+## [v0.6.4 & Dashboard v0.5.1] - 2026-11-13
+### Added
+- **Build Metadata Tracking**: CADEN script now captures and reports `buildDataVersion`, `embedDataVersion`, and `sourceExcelFile` from the client app's `RCM_BUILD_META` object.
+- **Permanent License Deletion**: Added `DELETE /admin/licenses/{license_id}` API endpoint and a "Delete" button in the Dashboard UI for revoked licenses. Also includes a standalone `delete_license.py` CLI script.
+### Changed
+- **App ID Simplification**: Changed internal `appId` from `RCM_DASHBOARD` to `RCM` to match the device ID prefix perfectly. Updated `init_db()` accordingly.
+
 ## [Dashboard v0.5.0 & Backend v1.1.0] - 2026-11-12
 ### Added
 - **Bulk Delete/Restore for Telemetry Logs**: Added checkboxes to select multiple logs. "Delete Selected" moves them to the Trash Bin; "Restore Selected" recovers them.
