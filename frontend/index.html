@@ -141,7 +141,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6 border-b border-gray-800 pb-4">
             <div class="flex items-center gap-4">
                 <img src="/favicon.svg" alt="CADEN Logo" class="w-10 h-10">
-                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.4.9</span></h1>
+                <h1 class="text-xl md:text-3xl font-bold text-blue-400">CADEN Governance Dashboard <span class="text-xs text-gray-500 font-normal ml-2">v0.5.2</span></h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="openConfigModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm">⚙️ Config</button>
@@ -241,6 +241,7 @@
                                 <th class="p-3">Screen<br><input type="text" id="fp-screen" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                                 <th class="p-3">GPU<br><input type="text" id="fp-gpu" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                                 <th class="p-3">Timezone<br><input type="text" id="fp-tz" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+                                <th class="p-3">Build Metadata<br><input type="text" id="fp-meta" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                             </tr>
                         </thead>
                         <tbody id="profiles-table"></tbody>
@@ -470,6 +471,7 @@
             const screenFilter = document.getElementById('fp-screen').value.toLowerCase();
             const gpuFilter = document.getElementById('fp-gpu').value.toLowerCase();
             const tzFilter = document.getElementById('fp-tz').value.toLowerCase();
+            const metaFilter = document.getElementById('fp-meta').value.toLowerCase();
 
             const filtered = allLicenses.filter(l => {
                 let sys = {};
@@ -492,8 +494,11 @@
                 const matchGPU = gpuFilter === '' || gpu.includes(gpuFilter);
                 const tz = (sys.timezone || '').toLowerCase();
                 const matchTZ = tzFilter === '' || tz.includes(tzFilter);
+                const HW = ['userAgent','platform','cpuCores','deviceMemory','screenRes','timezone','webglRenderer','screenWidth','screenHeight'];
+                const metaVals = Object.keys(sys).filter(k => !HW.includes(k)).map(k => (k + ' ' + sys[k]).toLowerCase()).join(' ');
+                const matchMeta = metaFilter === '' || metaVals.includes(metaFilter);
                 
-                return matchDevice && matchOwner && matchStatus && matchOS && matchCPU && matchRAM && matchScreen && matchGPU && matchTZ;
+                return matchDevice && matchOwner && matchStatus && matchOS && matchCPU && matchRAM && matchScreen && matchGPU && matchTZ && matchMeta;
             });
 
             document.getElementById('profiles-count').innerText = `${filtered.length} of ${allLicenses.length} devices`;
@@ -502,6 +507,8 @@
                 try { sys = typeof l.system_info === 'string' ? JSON.parse(l.system_info) : (l.system_info || {}); } catch(e) {}
                 let statusColor = l.status === 'ACTIVE' ? 'text-green-400' : (l.status === 'REVOKED' ? 'text-red-400' : 'text-yellow-400');
                 const screen = sys.screenRes || (sys.screenWidth && sys.screenHeight ? sys.screenWidth+'x'+sys.screenHeight : 'N/A');
+        const HW2 = ['userAgent','platform','cpuCores','deviceMemory','screenRes','timezone','webglRenderer','screenWidth','screenHeight'];
+        const metaStr = Object.keys(sys).filter(k => !HW2.includes(k)).map(k => `${k}: ${sys[k]}`).join(' | ');
                 return `<tr class="border-b border-gray-700 hover:bg-gray-750">
                     <td class="p-3 text-xs font-mono text-blue-300">
     <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
@@ -515,6 +522,7 @@
                     <td class="p-3 text-xs text-gray-200">${screen}</td>
                     <td class="p-3 text-xs text-gray-200" title="${sys.webglRenderer || ''}">${sys.webglRenderer ? sys.webglRenderer.substring(0, 30) + '...' : 'N/A'}</td>
                     <td class="p-3 text-xs text-gray-200">${sys.timezone || 'N/A'}</td>
+                    <td class="p-3 text-xs text-gray-200" title="${metaStr}">${metaStr || 'N/A'}</td>
                 </tr>`;
             }).join('');
         }

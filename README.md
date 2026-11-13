@@ -486,3 +486,16 @@ To completely remove a license and its telemetry logs from the database (bypassi
 python3 delete_license.py <device_id_or_license_id>
 ```
 Alternatively, use the **Delete** button in the CADEN Dashboard License Management table (available for Revoked licenses).
+
+## Build Metadata Convention (App Developers)
+To report build-component versions (and any other metadata) to CADEN, expose a single global object in the built HTML *before* the CADEN script:
+```javascript
+const APP_BUILD_META = {
+    appVersion: "0.6.3",
+    buildDataVersion: "v0.6.11",
+    embedDataVersion: "v0.1.8",
+    sourceExcelFile: "RCM_Data_Nov2026.xlsx"
+    // add/remove any keys freely - CADEN displays them all automatically
+};
+```
+CADEN merges every key of `APP_BUILD_META` into the device profile. The dashboard shows them in one dynamic **Build Metadata** column, so onboarding an app with different components requires **no dashboard changes**.

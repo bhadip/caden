@@ -1,5 +1,9 @@
 # CADEN Revision History
 
+## [Script v0.6.5 & Dashboard v0.5.2] - 2026-11-13
+### Changed
+- **Dynamic Build Metadata**: Client script now spreads a generic `APP_BUILD_META` object into the device profile instead of hardcoding fields. The Device Profiles tab replaces the 5 fixed version columns with a single auto-rendering **Build Metadata** column (and a unified filter). New apps with any set of build components require zero dashboard changes.
+
 ## [v0.6.4 & Dashboard v0.5.1] - 2026-11-13
 ### Added
 - **Build Metadata Tracking**: CADEN script now captures and reports `buildDataVersion`, `embedDataVersion`, and `sourceExcelFile` from the client app's `RCM_BUILD_META` object.
