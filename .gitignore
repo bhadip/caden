@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+data.enc
+dashboard.html
+build_info.json
