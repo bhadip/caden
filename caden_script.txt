@@ -1,7 +1,7 @@
 <!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.3) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.5";
+    const CADEN_VERSION = "0.6.6";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown',
@@ -63,19 +63,37 @@
 
     function generateDeviceFingerprint() {
         try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.textBaseline = "top"; ctx.font = "14px 'Arial'";
-            ctx.fillStyle = "#f60"; ctx.fillRect(125, 1, 62, 20);
-            ctx.fillStyle = "#069"; ctx.fillText("CADEN_V1", 2, 15);
-            const ctxString = canvas.toDataURL();
+            const parts = [];
+            // Stable hardware properties only (survives localStorage clears & browser updates)
+            parts.push('W:' + screen.width);
+            parts.push('H:' + screen.height);
+            parts.push('CPU:' + (navigator.hardwareConcurrency || 0));
+            parts.push('RAM:' + (navigator.deviceMemory || 0));
+            parts.push('TZ:' + (Intl.DateTimeFormat().resolvedOptions().timeZone || ''));
+            // GPU identifier (most stable cross-browser hardware ID)
+            try {
+                const c = document.createElement('canvas');
+                const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+                if (gl) {
+                    const d = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (d) {
+                        const renderer = gl.getParameter(d.UNMASKED_RENDERER_WEBGL);
+                        parts.push('GPU:' + renderer);
+            } } } catch(e) {}
+            
+            const combined = parts.join('|');
             let hash = 0;
-            const inputs = ctxString + navigator.userAgent + screen.width + screen.height + navigator.hardwareConcurrency;
-            for (let i = 0; i < inputs.length; i++) { const char = inputs.charCodeAt(i); hash = ((hash << 5) - hash) + char; hash |= 0; }
-            // Prefix based on App ID (e.g., RCM_DASHBOARD -> RCM)
-            const prefix = CADEN_CONFIG.appId.toUpperCase();
-            return prefix + "-" + Math.abs(hash).toString(16).toUpperCase() + "-" + getPersistentUUID().split('-')[0];
-        } catch (e) { return "RCM-GENERIC-" + getPersistentUUID().split('-')[0]; }
+            for (let i = 0; i < combined.length; i++) {
+                const char = combined.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0;
+            }
+            const prefix = CADEN_CONFIG.appId.split('_')[0].toUpperCase();
+            return prefix + "-" + Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+        } catch (e) { 
+            return "RCM-GENERIC-00000000"; 
+        }
+    }
     }
 
     window.storeSystemTelemetry = function(type, messagePayload, level = 2) {
@@ -113,6 +131,7 @@
     function showRegistrationModal(isAppeal = false) {
         if (document.getElementById('caden-reg-modal')) return;
         revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY'));
         const modal = document.createElement('div');
         modal.id = 'caden-reg-modal';
         modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:100000;display:flex;align-items:center;justify-content:center;';
@@ -224,19 +243,23 @@
                     if (existingToken) {
                         const existingExp = JSON.parse(atob(existingToken.split('.')[1])).exp;
                         const newExp = JSON.parse(atob(data.token.split('.')[1])).exp;
-                        if (newExp <= existingExp) { revealApp(); return; }
+                        if (newExp <= existingExp) { revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); return; }
                     }
                     localStorage.setItem(KEYS.token, data.token);
                     window.storeSystemTelemetry("ACTIVATION", "Device activated successfully.", 2);
-                    revealApp(); 
+                    revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); 
                 } else {
                     if (data.status === 'ACTIVE' || localStorage.getItem(KEYS.token)) revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY'));
                     else showRegistrationModal(false);
                 }
             }
         } catch (err) { 
             window.storeSystemTelemetry("ACTIVATION_ERROR", `Failed: ${err.message}`, 1);
             if ((localStorage.getItem(KEYS.token) || localStorage.getItem(KEYS.genesis)) && !localStorage.getItem(KEYS.revokedStatus)) revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY'));
             else if (localStorage.getItem(KEYS.revokedStatus)) {
                 if (localStorage.getItem(KEYS.appealStatus) === 'PENDING') _doLockdown("Appeal submitted. Awaiting administrator approval. Please close this application.");
                 else showRegistrationModal(true);
@@ -281,8 +304,27 @@
             try {
                 const payloadObject = JSON.parse(atob(activeToken.split('.')[1]));
                 if (payloadObject.exp * 1000 < Date.now()) { handleTrialExpiry(); return false; }
-                if (payloadObject.devId !== generateDeviceFingerprint()) { executeLockdownScreen("Hardware mismatch."); return false; }
-                if (!navigator.onLine) revealApp(); 
+                // FAIL-OPEN LOGIC: Only lockdown on explicit REVOKED or true EXPIRY
+                const now = Math.floor(Date.now() / 1000);
+                const gracePeriod = 300; // 5 minutes clock-skew grace window
+                
+                if (payloadObject.status === "REVOKED") {
+                    executeLockdownScreen("License has been revoked by administrator.");
+                    return false;
+                }
+                if (payloadObject.exp < (now - gracePeriod)) {
+                    executeLockdownScreen("License has expired.");
+                    return false;
+                }
+                
+                // Fingerprint mismatch? Do NOT lock. Silently re-activate in background.
+                if (payloadObject.devId !== generateDeviceFingerprint()) {
+                    console.warn("CADEN: Fingerprint updated (e.g., browser reload/update). Silently re-validating...");
+                    autoActivate(); // Fetches new token with new fingerprint using saved owner info
+                    // DO NOT return false. Let the app continue running.
+                }
+                if (!navigator.onLine) revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); 
                 return true; 
             } catch (e) { executeLockdownScreen("Token error."); return false; }
         }
@@ -291,7 +333,8 @@
                 const parsedRecord = JSON.parse(initialActivationRecord);
                 const absoluteTrialLimit = parsedRecord.genesisEpoch + (CADEN_CONFIG.trialDays * 24 * 60 * 60 * 1000);
                 if (Date.now() > absoluteTrialLimit) { handleTrialExpiry(); return false; }
-                else { if (!navigator.onLine) revealApp(); } 
+                else { if (!navigator.onLine) revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); } 
             } catch (jsonErr) { executeLockdownScreen("Trial error."); return false; }
         }
         return true;
@@ -302,7 +345,8 @@
             await autoActivate();
             const newToken = localStorage.getItem(KEYS.token);
             if (newToken) {
-                try { const exp = JSON.parse(atob(newToken.split('.')[1])).exp; if (exp * 1000 > Date.now()) { revealApp(); return; } } catch(e) {}
+                try { const exp = JSON.parse(atob(newToken.split('.')[1])).exp; if (exp * 1000 > Date.now()) { revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); return; } } catch(e) {}
             }
             executeLockdownScreen("Trial expired. Please contact the administrator to extend your license.");
         } else executeLockdownScreen(`Trial expired. Please connect to the internet to activate your license.`);
@@ -351,7 +395,8 @@
         setTimeout(spawnStealthConnectivityBroker, 2000);
         window.logCadenOperation("APP_START", `RCM Dashboard initialized (CADEN v${CADEN_VERSION})`);
         if (navigator.onLine) autoActivate(); 
-        else if (localStorage.getItem(KEYS.token) || localStorage.getItem(KEYS.genesis)) revealApp(); 
+        else if (localStorage.getItem(KEYS.token) || localStorage.getItem(KEYS.genesis)) revealApp();
+                window.dispatchEvent(new CustomEvent('CADEN_READY')); 
         else showRegistrationModal(false);
     });
 })();
