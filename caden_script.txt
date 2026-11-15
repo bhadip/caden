@@ -206,5 +206,5 @@
     window.logCadenOperation = function(type, msg) { console.log('CADEN Log:', type, msg); };
 
 })();
-<\/script>
+</script>
 <!-- END CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.7) -->
