@@ -1,73 +1,20 @@
-# CADEN Revision History
+# CADEN Engine Changelog
 
-## [Script v0.6.5 & Backend v1.2.0] - 2026-11-14
-### Added
-- **License Expiry API**: Backend `/v1/activate` now explicitly returns `expires_at` alongside the token to simplify client-side expiry display.
-### Changed
-- **Owner Sync Logic**: CADEN client script now syncs `owner_name` from the server response to `localStorage`, ensuring the client app always displays the latest admin-assigned name.
-- **Admin Overwrite Prevention**: Backend no longer accepts owner updates from active clients, preventing the client from overwriting admin changes in the CADEN Dashboard.
+## v0.6.12 (2026-11-17)
+### Backend
+- **CORS Enabled**: Added `CORSMiddleware` to allow requests from all origins (including `file://` and `localhost`).
+- **JWT Fix**: Fixed 500 Internal Server Error by ensuring JWT `exp` and `iat` claims use integer Unix timestamps.
+- **DB Connection Fix**: Fixed `sqlite3.ProgrammingError` by ensuring database updates commit before connection closes.
+- **Self-Healing Upsert**: `/v1/activate` now upserts `ownerName`, `ownerEmail`, and `ownerWhatsapp` from the request body, ensuring typed identity survives client-side merge.
+- **Online Status Tracking**: Added `last_seen_at` column to `LICENSES` table. `/v1/activate` and `/v1/profile` endpoints now stamp this timestamp.
 
-## [Script v0.6.5 & Dashboard v0.5.2] - 2026-11-13
-### Changed
-- **Dynamic Build Metadata**: Client script now spreads a generic `APP_BUILD_META` object into the device profile instead of hardcoding fields. The Device Profiles tab replaces the 5 fixed version columns with a single auto-rendering **Build Metadata** column (and a unified filter). New apps with any set of build components require zero dashboard changes.
+### Frontend (Admin Dashboard)
+- **Online Dot Logic**: Replaced WebSocket-based online check with `last_seen_at` database timestamp (5-minute window).
+- **Timezone Fix**: Fixed UTC parsing for `last_seen_at` to prevent false "Offline" status due to local timezone misinterpretation.
 
-## [v0.6.4 & Dashboard v0.5.1] - 2026-11-13
-### Added
-- **Build Metadata Tracking**: CADEN script now captures and reports `buildDataVersion`, `embedDataVersion`, and `sourceExcelFile` from the client app's `RCM_BUILD_META` object.
-- **Permanent License Deletion**: Added `DELETE /admin/licenses/{license_id}` API endpoint and a "Delete" button in the Dashboard UI for revoked licenses. Also includes a standalone `delete_license.py` CLI script.
-### Changed
-- **App ID Simplification**: Changed internal `appId` from `RCM_DASHBOARD` to `RCM` to match the device ID prefix perfectly. Updated `init_db()` accordingly.
-
-## [Dashboard v0.5.0 & Backend v1.1.0] - 2026-11-12
-### Added
-- **Bulk Delete/Restore for Telemetry Logs**: Added checkboxes to select multiple logs. "Delete Selected" moves them to the Trash Bin; "Restore Selected" recovers them.
-- **Enhanced Trash Bin UI**: Redesigned modal with a fixed header/footer layout. Added a total record count and a live badge showing the number of selected records for bulk restoration.
-- **Select All Functionality**: Added "Select All" checkboxes for both the main Telemetry Logs view and the Trash Bin.
-### Fixed
-- **FastAPI 422 Error**: Fixed the `/admin/logs/bulk-action` endpoint by manually parsing the JSON body via `Request.json()`, resolving parameter mapping conflicts.
-
-## [Dashboard v0.4.9] - 2026-11-11
-### Added
-- Navigation tracking: Records user's active tab and recent navigation history when errors occur, visible in telemetry logs.
-- Enhanced error context: Runtime errors now include which tab/page the user was viewing.
-### Fixed
-- Mobile Licenses tab: Now displays as stacked cards (like Device Profiles) instead of horizontal scroll.
-- Desktop filter alignment: Date range pickers now properly aligned with other filters.
-- Runtime error prevention: Added undefined checks for failureModes data to prevent cascade errors when data not loaded.
-
-## [Dashboard v0.4.8] - 2026-11-11
-### Changed
-- Mobile typography now ~12.5% smaller by default and scales with the device's system/browser font-size setting (percentage-based rem root + text-size-adjust:100%). Desktop unchanged.
-
-## [Dashboard v0.4.7] - 2026-11-11
-### Added
-- Mobile-responsive layout: viewport meta tag + mobile-only CSS (scrollable tables, full-width modals, stacked header). Desktop UI unchanged.
-- Clickable owner contacts: email opens mail client via mailto, WhatsApp opens wa.me chat. Numbers with leading 0 auto-converted to Indonesia +62.
-### Fixed
-- All dashboard timestamps (Telemetry Logs, Trash Bin, License Expiry) now display in CADEN server timezone (Asia/Singapore) instead of UTC.
-
-## [v0.6.2] - 2026-11-11
-### Added
-- **Local Revocation Persistence**: Added `KEYS.revokedStatus` to `localStorage`. Devices now remember their revoked state even when offline, preventing bypass by disconnecting the network.
-- **Online/Offline Status Indicator**: Added a real-time green/grey dot to the License Management table, powered by persistent WebSocket connection tracking.
-
-### Changed
-- Unified all terminology from "Grace Days" to **"Trial Days"** across backend, frontend, and client scripts.
-- Client script now waits for server response before displaying the trial deadline message, ensuring 100% accuracy with server-configured trial durations.
-
-### Fixed
-- Fixed webhook endpoint `500 Internal Server Error` by switching to FastAPI's `Request.json()` for robust payload parsing.
-- Fixed `NameError: manager is not defined` by ensuring proper instantiation order in `main.py`.
-- Resolved syntax errors caused by fragile string replacements by implementing bulletproof Regex-based patching.
-
-## [v0.5.0 - v0.6.1] 
-- Implemented Revocation Appeal workflow with change-highlighting (pencil emoji removed for cleaner UI).
-- Added configurable Trial Days and Reminder Days via Dashboard Config.
-- Integrated Telegram inline buttons (Extend 7/30/365 Days, Revoke, Reactivate, Approve/Deny Appeal).
-- Forced server timezone (Asia/Singapore) for all Telegram expiry notifications.
-- Added Device ID display under the "Protected by CADEN" badge.
-
-## [v0.1.0 - v0.4.0]
-- Initial CADEN engine setup with JWT licensing, canvas fingerprinting, and basic telemetry.
-- Added Admin Dashboard with License, Log, and Device Profile management.
-- Implemented Trash Bin for telemetry logs.
+### Client Script (caden_script.txt)
+- **Offline-First**: Registration saves to `localStorage` before network call; fails open if server unreachable.
+- **Store-and-Forward**: Background engine retries pending registration on `online` event and every 5 minutes.
+- **Guaranteed Heartbeat**: `syncProfile()` now called unconditionally on every online page load, independent of activation path.
+- **Hardened Merge**: `autoActivate()` and `attemptPendingRegistration()` explicitly merge server owner fields without wiping local data.
+- **Trial Fallback**: Default offline trial period increased from 3 days to 7 days.
