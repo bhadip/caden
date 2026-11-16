@@ -86,8 +86,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS LICENSES (
             id INTEGER PRIMARY KEY AUTOINCREMENT, app_id VARCHAR(50), device_id VARCHAR(100), 
             owner_name VARCHAR(100), owner_email VARCHAR(100), owner_whatsapp VARCHAR(50),
-            system_info TEXT, status VARCHAR(20) DEFAULT 'ACTIVE', first_boot_at DATETIME, expires_at DATETIME, renewal_requested_at DATETIME
+            system_info TEXT, status VARCHAR(20) DEFAULT 'ACTIVE', first_boot_at DATETIME, expires_at DATETIME, renewal_requested_at DATETIME, last_seen_at DATETIME
         );
+        try: conn.execute("ALTER TABLE LICENSES ADD COLUMN last_seen_at DATETIME")
+        except: pass
         CREATE TABLE IF NOT EXISTS UNIFIED_LOGS (
             id INTEGER PRIMARY KEY AUTOINCREMENT, app_id VARCHAR(50), device_id VARCHAR(100), 
             log_level INTEGER DEFAULT 2, log_type VARCHAR(50), payload TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -213,6 +215,8 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
         
         conn.close()
+        conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
+        conn.commit()
         return {"token": token, "status": latest_lic["status"], "message": "Already registered", 
                 "expires_at": latest_lic["expires_at"],
                 "owner_name": latest_lic["owner_name"], "owner_email": latest_lic["owner_email"], "owner_whatsapp": latest_lic["owner_whatsapp"]}
@@ -224,6 +228,7 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
     payload = {"appId": appId, "devId": deviceId, "exp": expires_at, "iat": now_utc}
     token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
     
+    conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
     conn.execute("INSERT INTO LICENSES (app_id, device_id, owner_name, owner_email, owner_whatsapp, status, first_boot_at, expires_at, system_info) VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)", 
                  (appId, deviceId, ownerName or "Pending Assignment", ownerEmail, ownerWhatsapp, now_utc.isoformat(), expires_at.isoformat(), systemInfo))
     conn.commit()
@@ -664,7 +669,7 @@ async def sync_device_profile(request: Request):
     sys_info = body.get("systemInfo")
     if device_id and sys_info is not None:
         conn = get_db()
-        conn.execute("UPDATE LICENSES SET system_info=? WHERE device_id=?", (json.dumps(sys_info), device_id))
+        conn.execute("UPDATE LICENSES SET system_info=?, last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (json.dumps(sys_info), device_id))
         conn.commit(); conn.close()
         return {"status": "ok"}
     return {"status": "skipped"}

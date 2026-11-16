@@ -1,7 +1,7 @@
-<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.10) -->
+<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.11) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.10";
+    const CADEN_VERSION = "0.6.11";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -11,10 +11,10 @@
         logLevel: 2
     };
     const KEYS = {
-        token: CADEN_CONFIG.appId + '_AUTH_TOKEN',
-        userInfo: CADEN_CONFIG.appId + '_USER_INFO',
-        genesis: CADEN_CONFIG.appId + '_GENESIS',
-        pendingReg: CADEN_CONFIG.appId + '_PENDING_REG'
+        token: 'RCM_AUTH_TOKEN',
+        userInfo: 'RCM_USER_INFO',
+        genesis: 'RCM_GENESIS',
+        pendingReg: 'RCM_PENDING_REG'
     };
 
     function generateDeviceFingerprint() {
@@ -101,7 +101,9 @@
             const wa = document.getElementById('caden-reg-wa').value;
             if (!name) return alert('Name required');
             const devId = generateDeviceFingerprint();
-            localStorage.setItem(KEYS.userInfo, JSON.stringify({ name: name, email: email, whatsapp: wa }));
+            const userInfoObj = { name: name, email: email, whatsapp: wa };
+            console.log('CADEN: Saving initial userInfo to localStorage:', userInfoObj);
+            localStorage.setItem(KEYS.userInfo, JSON.stringify(userInfoObj));
             localStorage.setItem(KEYS.genesis, Date.now().toString());
             const url = CADEN_CONFIG.serverUrl + '/v1/activate?appId=' + CADEN_CONFIG.appId + '&deviceId=' + devId + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa);
             try {
@@ -137,7 +139,17 @@
             const now = Math.floor(Date.now() / 1000);
             if (data.status === 'REVOKED') { executeLockdownScreen('License has been revoked.'); return; }
             if (data.expires_at) { const expDate = new Date(data.expires_at).getTime() / 1000; if (expDate < (now - 300)) { executeLockdownScreen('License has expired.'); return; } }
-            if (data.owner_name) { const ci = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}'); ci.name = data.owner_name; localStorage.setItem(KEYS.userInfo, JSON.stringify(ci)); }
+            
+            // HARDENED MERGE: Only update if server provides data, preserving existing fields
+            if (data.owner_name || data.owner_email || data.owner_whatsapp) {
+                const ci = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
+                if (data.owner_name) ci.name = data.owner_name;
+                if (data.owner_email) ci.email = data.owner_email;
+                if (data.owner_whatsapp) ci.whatsapp = data.owner_whatsapp;
+                console.log('CADEN: Merging server userInfo into localStorage:', ci);
+                localStorage.setItem(KEYS.userInfo, JSON.stringify(ci));
+            }
+            
             if (data.token) localStorage.setItem(KEYS.token, data.token);
             syncProfile();
             revealApp();
@@ -150,8 +162,24 @@
         try {
             const req = JSON.parse(pending);
             fetch(req.url, { method: req.method }).then(function(res){ return res.json(); }).then(function(data){
-                if (data.token) { localStorage.setItem(KEYS.token, data.token); localStorage.removeItem(KEYS.pendingReg); syncProfile(); console.log('CADEN: offline registration synced.'); }
-            }).catch(function(){});
+                if (data.token) { 
+                    localStorage.setItem(KEYS.token, data.token); 
+                    localStorage.removeItem(KEYS.pendingReg); 
+                    // HARDENED MERGE for offline sync
+                    if (data.owner_name || data.owner_email || data.owner_whatsapp) {
+                        const ci = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
+                        if (data.owner_name) ci.name = data.owner_name;
+                        if (data.owner_email) ci.email = data.owner_email;
+                        if (data.owner_whatsapp) ci.whatsapp = data.owner_whatsapp;
+                        console.log('CADEN: Merging server userInfo after offline sync:', ci);
+                        localStorage.setItem(KEYS.userInfo, JSON.stringify(ci));
+                    }
+                    syncProfile(); 
+                    console.log('CADEN: offline registration synced successfully.'); 
+                    // Trigger autoActivate to ensure full state is synced and last_seen_at is updated
+                    autoActivate();
+                }
+            }).catch(function(e){ console.log('CADEN: pending registration retry failed.', e); });
         } catch(e) {}
     }
 
@@ -176,4 +204,4 @@
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
 })();
 </script>
-<!-- END CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.10) -->
+<!-- END CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.11) -->

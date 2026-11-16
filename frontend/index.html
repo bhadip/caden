@@ -429,7 +429,25 @@
                 const waDisplay = l.owner_whatsapp ? `<a href="https://wa.me/${waLink(l.owner_whatsapp)}" target="_blank" rel="noopener" class="text-green-400 hover:underline">${l.owner_whatsapp}</a>` : '';
                 
                 return `<tr class="border-b border-gray-700 hover:bg-gray-750"><td class="p-3 text-xs font-mono text-blue-300">
-    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
+    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${(function(){
+            try {
+                if(l.last_seen_at) {
+                    const lastSeen = new Date(l.last_seen_at).getTime();
+                    const now = Date.now();
+                    return (now - lastSeen < 5 * 60 * 1000) ? '#10b981' : '#6b7280'; // 5 min threshold
+                }
+            } catch(e){}
+            return '#6b7280';
+        })()}; box-shadow: 0 0 4px ${(function(){
+            try {
+                if(l.last_seen_at) {
+                    const lastSeen = new Date(l.last_seen_at).getTime();
+                    const now = Date.now();
+                    return (now - lastSeen < 5 * 60 * 1000) ? '#10b981' : 'transparent';
+                }
+            } catch(e){}
+            return 'transparent';
+        })()};"></span>
     ${l.device_id}
 </td><td class="p-3 text-xs text-gray-300">${nameDisplay}<br><span class="text-gray-500">${emailDisplay} ${waDisplay}</span></td><td class="p-3 ${statusColor} font-bold text-xs">${l.status}</td><td class="p-3 text-xs text-gray-400">${l.expires_at ? formatSGT(l.expires_at) : 'N/A'}</td><td class="p-3">${actions}</td></tr>`;
             }).join('');
@@ -511,7 +529,25 @@
         const metaStr = Object.keys(sys).filter(k => !HW2.includes(k)).map(k => `${k}: ${sys[k]}`).join(' | ');
                 return `<tr class="border-b border-gray-700 hover:bg-gray-750">
                     <td class="p-3 text-xs font-mono text-blue-300">
-    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${onlineDevices.includes(l.device_id) ? '#10b981' : '#6b7280'}; box-shadow: 0 0 4px ${onlineDevices.includes(l.device_id) ? '#10b981' : 'transparent'};"></span>
+    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: ${(function(){
+            try {
+                if(l.last_seen_at) {
+                    const lastSeen = new Date(l.last_seen_at).getTime();
+                    const now = Date.now();
+                    return (now - lastSeen < 5 * 60 * 1000) ? '#10b981' : '#6b7280'; // 5 min threshold
+                }
+            } catch(e){}
+            return '#6b7280';
+        })()}; box-shadow: 0 0 4px ${(function(){
+            try {
+                if(l.last_seen_at) {
+                    const lastSeen = new Date(l.last_seen_at).getTime();
+                    const now = Date.now();
+                    return (now - lastSeen < 5 * 60 * 1000) ? '#10b981' : 'transparent';
+                }
+            } catch(e){}
+            return 'transparent';
+        })()};"></span>
     ${l.device_id}
 </td>
                     <td class="p-3 text-xs text-gray-300">${l.owner_name || 'Unassigned'}</td>
