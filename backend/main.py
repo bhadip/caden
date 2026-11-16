@@ -88,8 +88,6 @@ def init_db():
             owner_name VARCHAR(100), owner_email VARCHAR(100), owner_whatsapp VARCHAR(50),
             system_info TEXT, status VARCHAR(20) DEFAULT 'ACTIVE', first_boot_at DATETIME, expires_at DATETIME, renewal_requested_at DATETIME, last_seen_at DATETIME
         );
-        try: conn.execute("ALTER TABLE LICENSES ADD COLUMN last_seen_at DATETIME")
-        except: pass
         CREATE TABLE IF NOT EXISTS UNIFIED_LOGS (
             id INTEGER PRIMARY KEY AUTOINCREMENT, app_id VARCHAR(50), device_id VARCHAR(100), 
             log_level INTEGER DEFAULT 2, log_type VARCHAR(50), payload TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +96,13 @@ def init_db():
         CREATE TABLE IF NOT EXISTS ADMIN_USERS (id INTEGER PRIMARY KEY AUTOINCREMENT, username VARCHAR(50) UNIQUE, password_hash VARCHAR(255), role VARCHAR(20) DEFAULT 'admin');
         CREATE TABLE IF NOT EXISTS REMINDER_LOG (id INTEGER PRIMARY KEY AUTOINCREMENT, license_id INTEGER, reminded_at DATETIME, days_before INTEGER);
     """)
+    # Safely add last_seen_at column if it doesn't exist
+    try:
+        conn.execute("ALTER TABLE LICENSES ADD COLUMN last_seen_at DATETIME")
+        conn.commit()
+    except Exception:
+        pass # Column already exists
+
     for col, dtype in [("owner_email", "TEXT"), ("owner_whatsapp", "TEXT"), ("system_info", "TEXT"), ("renewal_requested_at", "TEXT"), ("is_deleted", "INTEGER DEFAULT 0"), ("reminder_days", "INTEGER DEFAULT 3")]:
         try: conn.execute(f"ALTER TABLE LICENSES ADD COLUMN {col} {dtype}")
         except: pass
@@ -211,21 +216,33 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         else:
             exp_date = now_utc + datetime.timedelta(days=app_row["trial_days"])
         
-        payload = {"appId": appId, "devId": deviceId, "exp": exp_date, "iat": now_utc}
+        payload = {"appId": appId, "devId": deviceId, "exp": int(exp_date.timestamp()), "iat": int(now_utc.timestamp())}
         token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
         
-        conn.close()
-        conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
-        conn.commit()
+        # Self-healing: upsert owner details if provided in the request
+        if ownerName or ownerEmail or ownerWhatsapp:
+            conn.execute("""
+                UPDATE LICENSES 
+                SET owner_name = CASE WHEN ? != '' THEN ? ELSE owner_name END,
+                    owner_email = CASE WHEN ? != '' THEN ? ELSE owner_email END,
+                    owner_whatsapp = CASE WHEN ? != '' THEN ? ELSE owner_whatsapp END,
+                    last_seen_at = CURRENT_TIMESTAMP
+                WHERE device_id = ?
+            """, (ownerName, ownerName, ownerEmail, ownerEmail, ownerWhatsapp, ownerWhatsapp, deviceId))
+            conn.commit()
+        else:
+            conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
+            conn.commit()
+            
         return {"token": token, "status": latest_lic["status"], "message": "Already registered", 
                 "expires_at": latest_lic["expires_at"],
-                "owner_name": latest_lic["owner_name"], "owner_email": latest_lic["owner_email"], "owner_whatsapp": latest_lic["owner_whatsapp"]}
+                "owner_name": (ownerName or latest_lic["owner_name"]), "owner_email": (ownerEmail or latest_lic["owner_email"]), "owner_whatsapp": (ownerWhatsapp or latest_lic["owner_whatsapp"])}
 
     trial_days = app_row["trial_days"]
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     expires_at = now_utc + datetime.timedelta(days=trial_days)
     
-    payload = {"appId": appId, "devId": deviceId, "exp": expires_at, "iat": now_utc}
+    payload = {"appId": appId, "devId": deviceId, "exp": int(expires_at.timestamp()), "iat": int(now_utc.timestamp())}
     token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
     
     conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))

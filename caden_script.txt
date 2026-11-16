@@ -1,7 +1,7 @@
-<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.11) -->
+<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.12) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.11";
+    const CADEN_VERSION = "0.6.12";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -191,11 +191,22 @@
         badge.style.cssText = 'position:fixed;top:10px;right:10px;background:#1e293b;color:#fff;padding:5px 10px;border-radius:4px;font-size:10px;z-index:999999;font-family:sans-serif;';
         badge.innerHTML = '🛡️ Protected by CADEN<br>ID: ' + generateDeviceFingerprint();
         document.body.appendChild(badge);
+        
         const token = localStorage.getItem(KEYS.token);
         const hasGenesis = localStorage.getItem(KEYS.genesis);
         const hasUserInfo = localStorage.getItem(KEYS.userInfo);
-        if (!token && !hasGenesis && !hasUserInfo) { showRegistrationModal(); } else { autoActivate(); }
-        if (navigator.onLine) attemptPendingRegistration();
+        
+        if (!token && !hasGenesis && !hasUserInfo) { 
+            showRegistrationModal(); 
+        } else { 
+            autoActivate(); 
+        }
+        
+        // GUARANTEE: Always sync profile on online load, independently of the activation path
+        if (navigator.onLine) {
+            syncProfile();
+            attemptPendingRegistration();
+        }
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
