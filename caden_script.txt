@@ -7,7 +7,7 @@
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
         serverUrl: "https://caden.prasanti.com",
         wssUrl: "wss://caden.prasanti.com/v1/stream",
-        trialDays: 3,
+        trialDays: 7,
         logLevel: 2
     };
     const KEYS = {
