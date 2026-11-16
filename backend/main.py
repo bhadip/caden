@@ -201,8 +201,19 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         raise HTTPException(status_code=403, detail="APPEAL_PENDING")
 
     if latest_lic and latest_lic["status"] == "ACTIVE":
+        # Generate token for existing active license to satisfy client script
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        exp_str = latest_lic["expires_at"]
+        if exp_str:
+            exp_date = datetime.datetime.fromisoformat(exp_str.replace('Z', '+00:00'))
+        else:
+            exp_date = now_utc + datetime.timedelta(days=app_row["trial_days"])
+        
+        payload = {"appId": appId, "devId": deviceId, "exp": exp_date, "iat": now_utc}
+        token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
+        
         conn.close()
-        return {"token": None, "status": latest_lic["status"], "message": "Already registered", 
+        return {"token": token, "status": latest_lic["status"], "message": "Already registered", 
                 "expires_at": latest_lic["expires_at"],
                 "owner_name": latest_lic["owner_name"], "owner_email": latest_lic["owner_email"], "owner_whatsapp": latest_lic["owner_whatsapp"]}
 
@@ -640,5 +651,22 @@ def delete_license(license_id: int):
         return {"status": "deleted", "device_id": lic["device_id"]}
     conn.close()
     raise HTTPException(status_code=404, detail="License not found")
+
+
+@app.post("/v1/profile")
+async def sync_device_profile(request: Request):
+    import json
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    device_id = body.get("deviceId")
+    sys_info = body.get("systemInfo")
+    if device_id and sys_info is not None:
+        conn = get_db()
+        conn.execute("UPDATE LICENSES SET system_info=? WHERE device_id=?", (json.dumps(sys_info), device_id))
+        conn.commit(); conn.close()
+        return {"status": "ok"}
+    return {"status": "skipped"}
 
 app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")
