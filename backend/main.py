@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="CADEN Engine Core", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 DATA_DIR = "/app/data"
 os.makedirs(DATA_DIR, exist_ok=True)
