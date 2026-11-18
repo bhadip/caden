@@ -360,6 +360,7 @@
             }
         }
         window.onload = checkSession;
+        setInterval(async function(){ try { allLicenses = await (await fetch(API_BASE+'/admin/licenses')).json(); applyLicenseFilters(); const vp=document.getElementById('view-profiles'); if(vp && !vp.classList.contains('hidden')) applyProfileFilters(); } catch(e){} }, 15000);
 
         async function login() {
             const res = await fetch(`${API_BASE}/admin/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value}) });
