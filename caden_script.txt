@@ -1,7 +1,7 @@
-<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.13) -->
+<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.14) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.13";
+    const CADEN_VERSION = "0.6.14";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -232,7 +232,7 @@
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
 })();
 
-    // Activity-Based Heartbeat (v0.6.13)
+    // Activity-Based Heartbeat (v0.6.14)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
