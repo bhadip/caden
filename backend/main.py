@@ -82,7 +82,7 @@ def get_db():
 def init_db():
     conn = get_db()
     conn.executescript("""
-        CREATE TABLE IF NOT EXISTS APPLICATIONS (id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), trial_days INTEGER DEFAULT 3, reminder_days INTEGER DEFAULT 3);
+        CREATE TABLE IF NOT EXISTS APPLICATIONS (id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), trial_days INTEGER DEFAULT 30, reminder_days INTEGER DEFAULT 3);
         CREATE TABLE IF NOT EXISTS LICENSES (
             id INTEGER PRIMARY KEY AUTOINCREMENT, app_id VARCHAR(50), device_id VARCHAR(100), 
             owner_name VARCHAR(100), owner_email VARCHAR(100), owner_whatsapp VARCHAR(50),
@@ -108,7 +108,7 @@ def init_db():
         except: pass
     try: conn.execute("ALTER TABLE APPLICATIONS RENAME COLUMN grace_days TO trial_days")
     except: pass
-    try: conn.execute("ALTER TABLE APPLICATIONS ADD COLUMN trial_days INTEGER DEFAULT 3")
+    try: conn.execute("ALTER TABLE APPLICATIONS ADD COLUMN trial_days INTEGER DEFAULT 30")
     except: pass
     
     cursor = conn.execute("SELECT id FROM ADMIN_USERS WHERE username='admin'")
