@@ -1,7 +1,7 @@
 <!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.13) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.12";
+    const CADEN_VERSION = "0.6.13";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
