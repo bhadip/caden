@@ -241,6 +241,7 @@
                                 <th class="p-3">Screen<br><input type="text" id="fp-screen" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                                 <th class="p-3">GPU<br><input type="text" id="fp-gpu" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                                 <th class="p-3">Timezone<br><input type="text" id="fp-tz" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
+<th class="p-3">Last Seen<br><input type="text" id="fp-lastseen" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                                 <th class="p-3">Build Metadata<br><input type="text" id="fp-meta" placeholder="Search..." class="bg-gray-700 text-white p-1 rounded border border-gray-600 text-xs w-full mt-1" oninput="applyProfileFilters()"></th>
                             </tr>
                         </thead>
@@ -499,6 +500,7 @@
             const screenFilter = document.getElementById('fp-screen').value.toLowerCase();
             const gpuFilter = document.getElementById('fp-gpu').value.toLowerCase();
             const tzFilter = document.getElementById('fp-tz').value.toLowerCase();
+const lastSeenFilter = document.getElementById('fp-lastseen').value.toLowerCase();
             const metaFilter = document.getElementById('fp-meta').value.toLowerCase();
 
             const filtered = allLicenses.filter(l => {
@@ -522,11 +524,13 @@
                 const matchGPU = gpuFilter === '' || gpu.includes(gpuFilter);
                 const tz = (sys.timezone || '').toLowerCase();
                 const matchTZ = tzFilter === '' || tz.includes(tzFilter);
+const lastSeen = l.last_seen_at ? formatSGT(l.last_seen_at).toLowerCase() : '';
+const matchLastSeen = lastSeenFilter === '' || lastSeen.includes(lastSeenFilter);
                 const HW = ['userAgent','platform','cpuCores','deviceMemory','screenRes','timezone','webglRenderer','screenWidth','screenHeight'];
                 const metaVals = Object.keys(sys).filter(k => !HW.includes(k)).map(k => (k + ' ' + sys[k]).toLowerCase()).join(' ');
                 const matchMeta = metaFilter === '' || metaVals.includes(metaFilter);
                 
-                return matchDevice && matchOwner && matchStatus && matchOS && matchCPU && matchRAM && matchScreen && matchGPU && matchTZ && matchMeta;
+                return matchDevice && matchOwner && matchStatus && matchOS && matchCPU && matchRAM && matchScreen && matchGPU && matchTZ && matchLastSeen && matchMeta;
             });
 
             document.getElementById('profiles-count').innerText = `${filtered.length} of ${allLicenses.length} devices`;
@@ -568,6 +572,7 @@
                     <td class="p-3 text-xs text-gray-200">${screen}</td>
                     <td class="p-3 text-xs text-gray-200" title="${sys.webglRenderer || ''}">${sys.webglRenderer ? sys.webglRenderer.substring(0, 30) + '...' : 'N/A'}</td>
                     <td class="p-3 text-xs text-gray-200">${sys.timezone || 'N/A'}</td>
+<td class="p-3 text-xs text-gray-200">${l.last_seen_at ? formatSGT(l.last_seen_at) : 'N/A'}</td>
                     <td class="p-3 text-xs text-gray-200" title="${metaStr}">${metaStr || 'N/A'}</td>
                 </tr>`;
             }).join('');

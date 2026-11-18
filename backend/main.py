@@ -223,9 +223,9 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         if ownerName or ownerEmail or ownerWhatsapp:
             conn.execute("""
                 UPDATE LICENSES 
-                SET owner_name = CASE WHEN ? != '' THEN ? ELSE owner_name END,
-                    owner_email = CASE WHEN ? != '' THEN ? ELSE owner_email END,
-                    owner_whatsapp = CASE WHEN ? != '' THEN ? ELSE owner_whatsapp END,
+                SET owner_name = CASE WHEN owner_name IS NULL OR owner_name = '' THEN ? ELSE owner_name END,
+                    owner_email = CASE WHEN owner_email IS NULL OR owner_email = '' THEN ? ELSE owner_email END,
+                    owner_whatsapp = CASE WHEN owner_whatsapp IS NULL OR owner_whatsapp = '' THEN ? ELSE owner_whatsapp END,
                     last_seen_at = CURRENT_TIMESTAMP
                 WHERE device_id = ?
             """, (ownerName, ownerName, ownerEmail, ownerEmail, ownerWhatsapp, ownerWhatsapp, deviceId))
