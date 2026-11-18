@@ -1,7 +1,7 @@
-<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.17) -->
+<!-- START CADEN LICENSING & GOVERNANCE COMPONENT (v0.6.18) -->
 <script>
 (function () {
-    const CADEN_VERSION = "0.6.17";
+    const CADEN_VERSION = "0.6.18";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -230,7 +230,7 @@
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.17: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.18: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
@@ -239,7 +239,7 @@
 }
 )();
 
-    // Activity-Based Heartbeat (v0.6.17)
+    // Activity-Based Heartbeat (v0.6.18)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -250,12 +250,12 @@
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.17: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.18: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
             const fp = generateDeviceFingerprint();
-            const r = await fetch(CADEN_CONFIG.serverUrl + '/v1/activate?appId=' + encodeURIComponent(CADEN_CONFIG.appId) + '&deviceId=' + encodeURIComponent(fp));
+            const r = await fetch(CADEN_CONFIG.serverUrl + '/v1/activate?appId=' + encodeURIComponent(CADEN_CONFIG.appId) + '&deviceId=' + encodeURIComponent(fp), {method:'POST'});
             if (!r.ok) return;
             const j = await r.json();
             if (j && (j.owner_name || j.owner_email || j.owner_whatsapp)) {
@@ -269,7 +269,7 @@
         } catch (e) {}
     }, 60000);
 
-    // v0.6.17: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.18: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
