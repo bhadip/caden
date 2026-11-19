@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.21";
+    const CADEN_VERSION = "0.6.22";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -144,6 +144,7 @@
                 if (data.owner_name) ci.name = data.owner_name;
                 if (data.owner_email) ci.email = data.owner_email;
                 if (data.owner_whatsapp) ci.whatsapp = data.owner_whatsapp;
+                if (data.expires_at) ci.expires_at = data.expires_at;
                 console.log('CADEN: Merging server userInfo into localStorage:', ci);
                 localStorage.setItem(KEYS.userInfo, JSON.stringify(ci));
             }
@@ -169,6 +170,7 @@
                         if (data.owner_name) ci.name = data.owner_name;
                         if (data.owner_email) ci.email = data.owner_email;
                         if (data.owner_whatsapp) ci.whatsapp = data.owner_whatsapp;
+                        if (data.expires_at) ci.expires_at = data.expires_at;
                         console.log('CADEN: Merging server userInfo after offline sync:', ci);
                         localStorage.setItem(KEYS.userInfo, JSON.stringify(ci));
                     }
@@ -228,7 +230,7 @@
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.21: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.22: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
@@ -237,7 +239,7 @@
 }
 )();
 
-    // Activity-Based Heartbeat (v0.6.21)
+    // Activity-Based Heartbeat (v0.6.22)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -248,7 +250,7 @@
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.21: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.22: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
@@ -256,18 +258,19 @@
             const r = await fetch(CADEN_CONFIG.serverUrl + '/v1/activate?appId=' + encodeURIComponent(CADEN_CONFIG.appId) + '&deviceId=' + encodeURIComponent(fp), {method:'POST'});
             if (!r.ok) return;
             const j = await r.json();
-            if (j && (j.owner_name || j.owner_email || j.owner_whatsapp)) {
+            if (j && (j.owner_name || j.owner_email || j.owner_whatsapp || j.expires_at)) {
                 const cur = JSON.parse(localStorage.getItem(KEYS.userInfo) || '{}');
-                if (j.owner_name) cur.owner_name = j.owner_name;
-                if (j.owner_email) cur.owner_email = j.owner_email;
-                if (j.owner_whatsapp) cur.owner_whatsapp = j.owner_whatsapp;
+                if (j.owner_name) cur.name = j.owner_name;
+                if (j.owner_email) cur.email = j.owner_email;
+                if (j.owner_whatsapp) cur.whatsapp = j.owner_whatsapp;
+                if (j.expires_at) cur.expires_at = j.expires_at;
                 localStorage.setItem(KEYS.userInfo, JSON.stringify(cur));
                 if (typeof updateDashboardFooter === 'function') { try { updateDashboardFooter(cur); } catch (e) {} }
             }
         } catch (e) {}
     }, 60000);
 
-    // v0.6.21: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.22: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
@@ -278,7 +281,7 @@
     });
 
 
-    // v0.6.21: Expose license status for RCM dashboard to block/show appeal
+    // v0.6.22: Expose license status for RCM dashboard to block/show appeal
     window.getCadenLicenseStatus = function() {
         const token = localStorage.getItem(KEYS.token);
         if(!token) return 'UNREGISTERED';
