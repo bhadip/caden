@@ -219,24 +219,15 @@ async def activate_device(appId: str, deviceId: str, ownerName: str = "", ownerE
         payload = {"appId": appId, "devId": deviceId, "exp": int(exp_date.timestamp()), "iat": int(now_utc.timestamp())}
         token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
         
-        # Self-healing: upsert owner details if provided in the request
-        if ownerName or ownerEmail or ownerWhatsapp:
-            conn.execute("""
-                UPDATE LICENSES 
-                SET owner_name = CASE WHEN owner_name IS NULL OR owner_name = '' THEN ? ELSE owner_name END,
-                    owner_email = CASE WHEN owner_email IS NULL OR owner_email = '' THEN ? ELSE owner_email END,
-                    owner_whatsapp = CASE WHEN owner_whatsapp IS NULL OR owner_whatsapp = '' THEN ? ELSE owner_whatsapp END,
-                    last_seen_at = CURRENT_TIMESTAMP
-                WHERE device_id = ?
-            """, (ownerName, ownerName, ownerEmail, ownerEmail, ownerWhatsapp, ownerWhatsapp, deviceId))
-            conn.commit()
-        else:
-            conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
-            conn.commit()
-            
+        # Heartbeat: Only update last_seen_at. Do NOT overwrite Admin-assigned owner details.
+        conn.execute("UPDATE LICENSES SET last_seen_at=CURRENT_TIMESTAMP WHERE device_id=?", (deviceId,))
+        conn.commit()
+        
         return {"token": token, "status": latest_lic["status"], "message": "Already registered", 
                 "expires_at": latest_lic["expires_at"],
-                "owner_name": (ownerName or latest_lic["owner_name"]), "owner_email": (ownerEmail or latest_lic["owner_email"]), "owner_whatsapp": (ownerWhatsapp or latest_lic["owner_whatsapp"])}
+                "owner_name": latest_lic["owner_name"], 
+                "owner_email": latest_lic["owner_email"], 
+                "owner_whatsapp": latest_lic["owner_whatsapp"]}
 
     trial_days = app_row["trial_days"]
     now_utc = datetime.datetime.now(datetime.timezone.utc)
