@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.20";
+    const CADEN_VERSION = "0.6.21";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -228,7 +228,7 @@
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.20: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.21: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
@@ -237,7 +237,7 @@
 }
 )();
 
-    // Activity-Based Heartbeat (v0.6.20)
+    // Activity-Based Heartbeat (v0.6.21)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -248,7 +248,7 @@
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.20: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.21: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
@@ -267,7 +267,7 @@
         } catch (e) {}
     }, 60000);
 
-    // v0.6.20: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.21: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
@@ -278,7 +278,7 @@
     });
 
 
-    // v0.6.20: Expose license status for RCM dashboard to block/show appeal
+    // v0.6.21: Expose license status for RCM dashboard to block/show appeal
     window.getCadenLicenseStatus = function() {
         const token = localStorage.getItem(KEYS.token);
         if(!token) return 'UNREGISTERED';
