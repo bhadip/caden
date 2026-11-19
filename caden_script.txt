@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.23";
+    const CADEN_VERSION = "0.6.24";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -76,9 +76,12 @@
     }
 
     function revealApp() {
-        const overlay = document.getElementById('caden-lockdown-overlay'); if (overlay) overlay.remove();
-        const modal = document.getElementById('caden-reg-modal'); if (modal) modal.style.display = 'none';
-        document.body.querySelectorAll('[style*="display: none"]').forEach(function(el){ if (el.id !== 'caden-lockdown-overlay') el.style.display = ''; });
+        // v0.6.24: ONLY hide the registration modal and signal readiness. 
+        // The RCM dashboard handles the main app/intro video transition.
+        const modal = document.getElementById('caden-reg-modal') || document.querySelector('.caden-modal');
+        if (modal) modal.style.display = 'none';
+        window.dispatchEvent(new Event('CADEN_READY'));
+    });
         window.dispatchEvent(new CustomEvent('CADEN_READY'));
         window.cadenInitialized = true;
     }
@@ -99,13 +102,20 @@
             const wa = document.getElementById('caden-reg-wa').value;
             if (!name) return alert('Name required');
             const devId = generateDeviceFingerprint();
-            // v0.6.23: Calculate local 30-day trial expiry for offline first-run
+            // v0.6.24: Calculate local 30-day trial expiry for offline first-run
             const localExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const userInfoObj = { name: name, email: email, whatsapp: wa, expires_at: localExpiry };
             console.log('CADEN: Saving initial userInfo + local 30-day expiry to localStorage:', userInfoObj);
             localStorage.setItem(KEYS.userInfo, JSON.stringify(userInfoObj));
             // Ensure the main app is revealed so the video background/start button is visible
-            revealApp();
+            
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp();
             localStorage.setItem(KEYS.genesis, Date.now().toString());
             const url = CADEN_CONFIG.serverUrl + '/v1/activate?appId=' + CADEN_CONFIG.appId + '&deviceId=' + devId + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa);
             try {
@@ -115,16 +125,37 @@
                     localStorage.setItem(KEYS.token, data.token);
                     localStorage.removeItem(KEYS.pendingReg);
                     syncProfile();
-                    modal.remove(); revealApp();
+                    modal.remove(); 
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp();
                 } else {
                     console.warn('CADEN: server rejected registration, proceeding offline.');
                     localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
-                    modal.remove(); revealApp();
+                    modal.remove(); 
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp();
                 }
             } catch (e) {
                 console.warn('CADEN: network error, proceeding offline.');
                 localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
-                modal.remove(); revealApp();
+                modal.remove(); 
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp();
             }
         };
     }
@@ -155,8 +186,22 @@
             
             if (data.token) localStorage.setItem(KEYS.token, data.token);
             syncProfile();
-            revealApp();
-        } catch (e) { console.error('CADEN activation error:', e); if (token) revealApp(); }
+            
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp();
+        } catch (e) { console.error('CADEN activation error:', e); if (token) 
+            // v0.6.24: Hard block for REVOKED licenses
+            if (data.status === 'REVOKED') {
+                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
+                console.warn('CADEN: License is REVOKED. App loading halted.');
+                return;
+            }
+revealApp(); }
     }
 
     function attemptPendingRegistration() {
@@ -234,7 +279,7 @@
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.23: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.24: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
@@ -243,7 +288,7 @@
 }
 )();
 
-    // Activity-Based Heartbeat (v0.6.23)
+    // Activity-Based Heartbeat (v0.6.24)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -254,7 +299,7 @@
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.23: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.24: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
@@ -274,7 +319,7 @@
         } catch (e) {}
     }, 60000);
 
-    // v0.6.23: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.24: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
@@ -285,7 +330,7 @@
     });
 
 
-    // v0.6.23: Expose license status for RCM dashboard to block/show appeal
+    // v0.6.24: Expose license status for RCM dashboard to block/show appeal
     window.getCadenLicenseStatus = function() {
         const token = localStorage.getItem(KEYS.token);
         if(!token) return 'UNREGISTERED';
