@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.24";
+    const CADEN_VERSION = "0.6.25";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -76,7 +76,7 @@
     }
 
     function revealApp() {
-        // v0.6.24: ONLY hide the registration modal and signal readiness. 
+        // v0.6.25: ONLY hide the registration modal and signal readiness. 
         // The RCM dashboard handles the main app/intro video transition.
         const modal = document.getElementById('caden-reg-modal') || document.querySelector('.caden-modal');
         if (modal) modal.style.display = 'none';
@@ -102,17 +102,52 @@
             const wa = document.getElementById('caden-reg-wa').value;
             if (!name) return alert('Name required');
             const devId = generateDeviceFingerprint();
-            // v0.6.24: Calculate local 30-day trial expiry for offline first-run
+            // v0.6.25: Calculate local 30-day trial expiry for offline first-run
             const localExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const userInfoObj = { name: name, email: email, whatsapp: wa, expires_at: localExpiry };
             console.log('CADEN: Saving initial userInfo + local 30-day expiry to localStorage:', userInfoObj);
             localStorage.setItem(KEYS.userInfo, JSON.stringify(userInfoObj));
             // Ensure the main app is revealed so the video background/start button is visible
             
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp();
@@ -126,10 +161,45 @@ revealApp();
                     localStorage.removeItem(KEYS.pendingReg);
                     syncProfile();
                     modal.remove(); 
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp();
@@ -137,10 +207,45 @@ revealApp();
                     console.warn('CADEN: server rejected registration, proceeding offline.');
                     localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
                     modal.remove(); 
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp();
@@ -149,10 +254,45 @@ revealApp();
                 console.warn('CADEN: network error, proceeding offline.');
                 localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
                 modal.remove(); 
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp();
@@ -187,18 +327,88 @@ revealApp();
             if (data.token) localStorage.setItem(KEYS.token, data.token);
             syncProfile();
             
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp();
         } catch (e) { console.error('CADEN activation error:', e); if (token) 
-            // v0.6.24: Hard block for REVOKED licenses
+            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
-                document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999999;font-family:sans-serif;"><h1 style="color:#ef4444;margin-bottom:1rem;">License Revoked</h1><p>Please contact support to restore access.</p></div>';
-                console.warn('CADEN: License is REVOKED. App loading halted.');
+                const appealHTML = `
+                    <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
+                        <div style="background:#1e293b;padding:2rem;border-radius:8px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                            <h2 style="color:#ef4444;margin-top:0;text-align:center;">License Revoked</h2>
+                            <p style="text-align:center;font-size:0.9rem;color:#94a3b8;margin-bottom:1.5rem;">Please submit an appeal to restore access.</p>
+                            <form id="caden-appeal-form">
+                                <input type="text" id="appeal-name" placeholder="Full Name" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="email" id="appeal-email" placeholder="Email Address" required style="width:100%;padding:0.75rem;margin-bottom:1rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <input type="text" id="appeal-wa" placeholder="WhatsApp Number" required style="width:100%;padding:0.75rem;margin-bottom:1.5rem;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:4px;box-sizing:border-box;">
+                                <button type="submit" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">Submit Appeal</button>
+                            </form>
+                            <div id="appeal-success" style="display:none;text-align:center;color:#10b981;margin-top:1rem;">Appeal submitted successfully. Please wait for approval.</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', appealHTML);
+                
+                document.getElementById('caden-appeal-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('appeal-name').value;
+                    const email = document.getElementById('appeal-email').value;
+                    const wa = document.getElementById('appeal-wa').value;
+                    
+                    try {
+                        const res = await fetch(CADEN_CONFIG.serverUrl + '/v1/appeal?deviceId=' + generateDeviceFingerprint() + '&ownerName=' + encodeURIComponent(name) + '&ownerEmail=' + encodeURIComponent(email) + '&ownerWhatsapp=' + encodeURIComponent(wa), { method: 'POST' });
+                        if (res.ok) {
+                            document.getElementById('caden-appeal-form').style.display = 'none';
+                            document.getElementById('appeal-success').style.display = 'block';
+                        } else {
+                            alert('Failed to submit appeal. Please try again.');
+                        }
+                    } catch (err) {
+                        alert('Network error. Please check your connection.');
+                    }
+                });
+                
+                console.warn('CADEN: License is REVOKED. Appeal form displayed.');
                 return;
             }
 revealApp(); }
@@ -279,7 +489,7 @@ revealApp(); }
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.24: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.25: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
@@ -288,7 +498,7 @@ revealApp(); }
 }
 )();
 
-    // Activity-Based Heartbeat (v0.6.24)
+    // Activity-Based Heartbeat (v0.6.25)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -299,7 +509,7 @@ revealApp(); }
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.24: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.25: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
@@ -319,7 +529,7 @@ revealApp(); }
         } catch (e) {}
     }, 60000);
 
-    // v0.6.24: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.25: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
@@ -330,7 +540,7 @@ revealApp(); }
     });
 
 
-    // v0.6.24: Expose license status for RCM dashboard to block/show appeal
+    // v0.6.25: Expose license status for RCM dashboard to block/show appeal
     window.getCadenLicenseStatus = function() {
         const token = localStorage.getItem(KEYS.token);
         if(!token) return 'UNREGISTERED';
