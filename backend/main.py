@@ -682,4 +682,20 @@ async def sync_device_profile(request: Request):
         return {"status": "ok"}
     return {"status": "skipped"}
 
+
+from fastapi.responses import Response
+
+@app.get("/caden_script.txt")
+def serve_caden_script():
+    try:
+        with open("/app/caden_script.txt", "r", encoding="utf-8") as f:
+            txt = f.read()
+        return Response(
+            content=txt, 
+            media_type="text/javascript; charset=utf-8",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
+        )
+    except Exception as e:
+        return Response(status_code=404, content=f"Script missing: {str(e)}")
+
 app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")
