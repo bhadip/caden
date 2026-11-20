@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.25";
+    const CADEN_VERSION = "0.6.28";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -76,14 +76,11 @@
     }
 
     function revealApp() {
-        // v0.6.25: ONLY hide the registration modal and signal readiness. 
+        // v0.6.28: ONLY hide the registration modal and signal readiness. 
         // The RCM dashboard handles the main app/intro video transition.
         const modal = document.getElementById('caden-reg-modal') || document.querySelector('.caden-modal');
         if (modal) modal.style.display = 'none';
         window.dispatchEvent(new Event('CADEN_READY'));
-    });
-        window.dispatchEvent(new CustomEvent('CADEN_READY'));
-        window.cadenInitialized = true;
     }
 
     function showRegistrationModal() {
@@ -102,14 +99,14 @@
             const wa = document.getElementById('caden-reg-wa').value;
             if (!name) return alert('Name required');
             const devId = generateDeviceFingerprint();
-            // v0.6.25: Calculate local 30-day trial expiry for offline first-run
+            // v0.6.28: Calculate local 30-day trial expiry for offline first-run
             const localExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const userInfoObj = { name: name, email: email, whatsapp: wa, expires_at: localExpiry };
             console.log('CADEN: Saving initial userInfo + local 30-day expiry to localStorage:', userInfoObj);
             localStorage.setItem(KEYS.userInfo, JSON.stringify(userInfoObj));
             // Ensure the main app is revealed so the video background/start button is visible
             
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -161,7 +158,7 @@ revealApp();
                     localStorage.removeItem(KEYS.pendingReg);
                     syncProfile();
                     modal.remove(); 
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -207,7 +204,7 @@ revealApp();
                     console.warn('CADEN: server rejected registration, proceeding offline.');
                     localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
                     modal.remove(); 
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -254,7 +251,7 @@ revealApp();
                 console.warn('CADEN: network error, proceeding offline.');
                 localStorage.setItem(KEYS.pendingReg, JSON.stringify({ url: url, method: 'POST' }));
                 modal.remove(); 
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -327,7 +324,7 @@ revealApp();
             if (data.token) localStorage.setItem(KEYS.token, data.token);
             syncProfile();
             
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -370,7 +367,7 @@ revealApp();
             }
 revealApp();
         } catch (e) { console.error('CADEN activation error:', e); if (token) 
-            // v0.6.25: Hard block for REVOKED licenses with EMPTY appeal form
+            // v0.6.28: Hard block for REVOKED licenses with EMPTY appeal form
             if (data.status === 'REVOKED') {
                 const appealHTML = `
                     <div id="caden-appeal-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:#fff;display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;">
@@ -489,16 +486,15 @@ revealApp(); }
         }).catch(()=>{});
     };
     window.logCadenOperation = function(type, msg){ console.log('CADEN Log:', type, msg); };
-    // v0.6.25: expose internals to window so the out-of-scope poller/heartbeat can call them
+    // v0.6.28: expose internals to window so the out-of-scope poller/heartbeat can call them
     try { window.syncProfile = syncProfile; } catch(e){}
     try { window.generateDeviceFingerprint = generateDeviceFingerprint; } catch(e){}
     try { window.updateDashboardFooter = updateDashboardFooter; } catch(e){}
     try { window.CADEN_CONFIG = CADEN_CONFIG; } catch(e){}
     try { window.KEYS = KEYS; } catch(e){}
 }
-)();
 
-    // Activity-Based Heartbeat (v0.6.25)
+    // Activity-Based Heartbeat (v0.6.28)
     let lastActivitySync = Date.now();
     function handleUserActivity() {
         const now = Date.now();
@@ -509,7 +505,7 @@ revealApp(); }
     }
     ['keydown', 'mousemove', 'click', 'scroll'].forEach(evt => window.addEventListener(evt, handleUserActivity));
 
-    // v0.6.25: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
+    // v0.6.28: Admin-owner propagation poller (pulls Admin-assigned name into client every 60s)
     setInterval(async function () {
         try {
             if (!navigator.onLine) return;
@@ -529,7 +525,7 @@ revealApp(); }
         } catch (e) {}
     }, 60000);
 
-    // v0.6.25: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
+    // v0.6.28: Navigation telemetry (logs which menu/button the user clicks, debounced 3s)
     let lastNavLog = 0;
     document.addEventListener('click', function (e) {
         try {
@@ -540,7 +536,7 @@ revealApp(); }
     });
 
 
-    // v0.6.25: Expose license status for RCM dashboard to block/show appeal
+    // v0.6.28: Expose license status for RCM dashboard to block/show appeal
     window.getCadenLicenseStatus = function() {
         const token = localStorage.getItem(KEYS.token);
         if(!token) return 'UNREGISTERED';
@@ -552,3 +548,4 @@ revealApp(); }
             return 'ACTIVE'; 
         } catch(e) { return 'ERROR'; }
     };
+})();
