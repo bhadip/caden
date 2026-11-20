@@ -1,5 +1,5 @@
 (function () {
-    const CADEN_VERSION = "0.6.29";
+    const CADEN_VERSION = "0.6.30";
     const CADEN_CONFIG = {
         appId: "RCM",
         appVersion: (typeof APP_BUILD_META !== 'undefined' && APP_BUILD_META.appVersion) ? APP_BUILD_META.appVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'Unknown'),
@@ -133,6 +133,7 @@
             const email = document.getElementById('caden-reg-email').value;
             const wa = document.getElementById('caden-reg-wa').value;
             if (!name) return alert('Name required');
+            if (!email || !email.includes('@')) return alert('Valid email required');
             const devId = generateDeviceFingerprint();
             const localExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const userInfoObj = { name: name, email: email, whatsapp: wa, expires_at: localExpiry };
